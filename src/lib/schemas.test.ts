@@ -35,6 +35,9 @@ describe('paymentSchema', () => {
   it('accepts a valid payment payload', () => {
     expect(paymentSchema.safeParse(validPayment).success).toBe(true);
   });
+  it('accepts the 0422 Digitel prefix', () => {
+    expect(paymentSchema.safeParse({ ...validPayment, phone: '04221234567' }).success).toBe(true);
+  });
   it.each(['4141234567', '04991234567', '0414123456', '041412345678'])(
     'rejects invalid Venezuelan phone %s',
     (phone) => {

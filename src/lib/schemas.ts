@@ -9,8 +9,8 @@ export const bookingSchema = z.object({
   email: z.email('Correo inválido'),
 });
 
-// Venezuelan mobile: 0412/0414/0416/0424/0426 + 7 digits
-const VE_PHONE = /^04(12|14|16|24|26)\d{7}$/;
+// Venezuelan mobile: 0412/0414/0416/0422/0424/0426 + 7 digits
+const VE_PHONE = /^04(12|14|16|22|24|26)\d{7}$/;
 
 export const paymentSchema = bookingSchema.extend({
   idType: z.enum(['V', 'E', 'P', 'J']),
