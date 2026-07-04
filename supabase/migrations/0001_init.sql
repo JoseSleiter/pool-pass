@@ -79,6 +79,7 @@ declare
   v_limit int;
   v_occupancy int;
   v_code text;
+  v_attempt int := 0;
 begin
   -- serialize all bookings for the same date
   perform pg_advisory_xact_lock(hashtext('pool-' || p_date::text));
@@ -99,17 +100,28 @@ begin
     return;
   end if;
 
-  v_code := 'PP-' || upper(substring(md5(gen_random_uuid()::text) from 1 for 5));
-
-  return query
-  insert into reservations
-    (code, date, first_name, last_name, email, id_type, id_number,
-     adults, children, total_usd, status, expires_at)
-  values
-    (v_code, p_date, p_first_name, p_last_name, p_email, p_id_type, p_id_number,
-     p_adults, p_children, p_total_usd, 'pending_payment', now() + interval '10 minutes')
-  returning true, reservations.id, reservations.code, null::int;
+  loop
+    v_code := 'PP-' || (
+      select string_agg(substr('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', (floor(random()*36))::int + 1, 1), '')
+      from generate_series(1, 5)
+    );
+    begin
+      return query
+      insert into reservations
+        (code, date, first_name, last_name, email, id_type, id_number,
+         adults, children, total_usd, status, expires_at)
+      values
+        (v_code, p_date, p_first_name, p_last_name, p_email, p_id_type, p_id_number,
+         p_adults, p_children, p_total_usd, 'pending_payment', now() + interval '10 minutes')
+      returning true, reservations.id, reservations.code, null::int;
+      return;
+    exception when unique_violation then
+      v_attempt := v_attempt + 1;
+      if v_attempt >= 5 then raise; end if;
+    end;
+  end loop;
 end;
 $$;
 
+revoke execute on function reserve_slots(date,text,text,text,text,text,int,int,numeric) from public;
 grant execute on function reserve_slots to service_role;

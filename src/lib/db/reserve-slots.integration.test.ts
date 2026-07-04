@@ -11,6 +11,12 @@ const supabase = createClient(
   { realtime: { transport: ws as never } }
 );
 
+const supabaseAnon = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  { realtime: { transport: ws as never } }
+);
+
 const DATE = '2030-01-15';
 
 function reserve(adults: number, children = 0) {
@@ -68,5 +74,27 @@ describe('reserve_slots', () => {
       .eq('date', DATE);
     const total = rows!.reduce((s, r) => s + r.adults + r.children, 0);
     expect(total).toBeLessThanOrEqual(10);
+  });
+
+  it('denies execution of reserve_slots to the anon role', async () => {
+    const { data, error } = await supabaseAnon.rpc('reserve_slots', {
+      p_date: DATE,
+      p_first_name: 'Ana',
+      p_last_name: 'Pérez',
+      p_email: 'ana@example.com',
+      p_id_type: 'V',
+      p_id_number: '12345678',
+      p_adults: 1,
+      p_children: 0,
+      p_total_usd: 15,
+    });
+    expect(error).not.toBeNull();
+    expect(data).toBeNull();
+
+    const { data: rows } = await supabase
+      .from('reservations')
+      .select('id')
+      .eq('date', DATE);
+    expect(rows).toHaveLength(0);
   });
 });
