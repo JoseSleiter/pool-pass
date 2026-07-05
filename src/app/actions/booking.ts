@@ -30,6 +30,15 @@ export async function submitBookingAndPay(raw: unknown): Promise<BookingResult> 
   });
 }
 
+export async function getCurrentRate(): Promise<number | null> {
+  return getBcvRate({
+    fetchRate: fetchBcvRateFromMirror,
+    readCache: readRateCache,
+    writeCache: writeRateCache,
+    now: Date.now,
+  });
+}
+
 export async function getAvailability(month: string): Promise<Record<string, number>> {
   if (!/^\d{4}-\d{2}$/.test(month)) return {};
   return monthAvailability(month);

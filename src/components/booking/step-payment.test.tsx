@@ -35,4 +35,45 @@ describe('StepPayment', () => {
     render(<StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={true} error={null} />);
     expect(screen.getByRole('button', { name: /procesando/i })).toBeDisabled();
   });
+
+  it('shows the estimated VES total and BCV rate when vesInfo is given', () => {
+    render(
+      <StepPayment booking={booking} totalUsd={35} vesInfo={{ rate: 36.5, totalVes: 1277.5 }}
+        onSubmit={vi.fn()} submitting={false} error={null} />
+    );
+    expect(screen.getByText(/Bs\. 1277\.50/)).toBeInTheDocument();
+    expect(screen.getByText(/tasa BCV 36\.50/)).toBeInTheDocument();
+  });
+
+  it('clears stale field errors once a corrected form submits successfully', async () => {
+    const onSubmit = vi.fn();
+    render(<StepPayment booking={booking} totalUsd={35} onSubmit={onSubmit} submitting={false} error={null} />);
+    await userEvent.type(screen.getByLabelText(/número de documento/i), '12345678');
+    await userEvent.type(screen.getByLabelText(/teléfono/i), '123');
+    await userEvent.type(screen.getByLabelText(/clave de pago/i), '123456');
+    await userEvent.click(document.getElementById('bank')!);
+    await userEvent.click(await screen.findByText(/0102 — Banco de Venezuela/));
+    await userEvent.click(screen.getByRole('button', { name: /pagar/i }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(await screen.findByText(/teléfono venezolano inválido/i)).toBeInTheDocument();
+
+    await userEvent.clear(screen.getByLabelText(/teléfono/i));
+    await userEvent.type(screen.getByLabelText(/teléfono/i), '04141234567');
+    await userEvent.click(screen.getByRole('button', { name: /pagar/i }));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/teléfono venezolano inválido/i)).not.toBeInTheDocument();
+  });
+
+  it('clears the entered OTP when a server error arrives (declined charge)', async () => {
+    const { rerender } = render(
+      <StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error={null} />
+    );
+    const otp = screen.getByLabelText(/clave de pago/i);
+    await userEvent.type(otp, '123456');
+    expect(otp).toHaveValue('123456');
+    rerender(
+      <StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error="Clave inválida" />
+    );
+    expect(screen.getByLabelText(/clave de pago/i)).toHaveValue('');
+  });
 });

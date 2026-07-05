@@ -30,6 +30,15 @@ export function StepPayment(props: {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // A C2P OTP is single-use: once the server rejects a charge, the typed
+  // key is dead — clear it so the user must generate a fresh one.
+  // (Render-time state adjustment; avoids an extra effect pass.)
+  const [prevError, setPrevError] = useState(props.error);
+  if (props.error !== prevError) {
+    setPrevError(props.error);
+    if (props.error) setFields((f) => ({ ...f, otp: '' }));
+  }
+
   function submit() {
     const parsed = payFieldsSchema.safeParse(fields);
     if (!parsed.success) {
@@ -38,6 +47,7 @@ export function StepPayment(props: {
       setErrors(errs);
       return;
     }
+    setErrors({});
     props.onSubmit(parsed.data);
   }
 
