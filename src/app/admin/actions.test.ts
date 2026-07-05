@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+let mockUser: { id: string } | null = null;
+
 vi.mock('@/lib/db/ssr-client', () => ({
   ssrClient: vi.fn(async () => ({
-    auth: { getUser: async () => ({ data: { user: null } }) },
+    auth: { getUser: async () => ({ data: { user: mockUser } }) },
   })),
 }));
 vi.mock('@/lib/db/reservations', () => ({
@@ -33,6 +35,7 @@ import { sendVoucherEmail } from '@/lib/email/send';
 describe('admin actions auth gating (no user)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUser = null;
   });
 
   it('adminListReservations rejects with Unauthorized and never hits the data layer', async () => {
@@ -78,5 +81,40 @@ describe('admin actions auth gating (no user)', () => {
   it('adminDeleteOverride rejects with Unauthorized and never hits the data layer', async () => {
     await expect(adminDeleteOverride('2030-01-15')).rejects.toThrow('Unauthorized');
     expect(deleteOverride).not.toHaveBeenCalled();
+  });
+});
+
+describe('admin settings validation (authorized user)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = { id: 'admin-1' };
+  });
+
+  it('adminUpdateSettings rejects a non-integer daily_capacity without hitting the data layer', async () => {
+    const res = await adminUpdateSettings({
+      daily_capacity: 1.5, adult_price_usd: 15, child_price_usd: 5,
+    });
+    expect(res.ok).toBe(false);
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it('adminUpdateSettings rejects a negative daily_capacity without hitting the data layer', async () => {
+    const res = await adminUpdateSettings({
+      daily_capacity: -1, adult_price_usd: 15, child_price_usd: 5,
+    });
+    expect(res.ok).toBe(false);
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it('adminUpsertOverride rejects a malformed date without hitting the data layer', async () => {
+    const res = await adminUpsertOverride('2030-13-99x', 5);
+    expect(res.ok).toBe(false);
+    expect(upsertOverride).not.toHaveBeenCalled();
+  });
+
+  it('adminUpsertOverride rejects a negative capacity without hitting the data layer', async () => {
+    const res = await adminUpsertOverride('2030-03-05', -2);
+    expect(res.ok).toBe(false);
+    expect(upsertOverride).not.toHaveBeenCalled();
   });
 });

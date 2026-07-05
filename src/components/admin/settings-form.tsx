@@ -25,10 +25,14 @@ export function SettingsForm(props: {
 
   async function save() {
     setNotice(null);
+    if (capacity.trim() === '' || adult.trim() === '' || child.trim() === '') {
+      setNotice('Todos los campos son requeridos.');
+      return;
+    }
     const res = await adminUpdateSettings({
       daily_capacity: Number(capacity),
-      adult_price_usd: Number(adult),
-      child_price_usd: Number(child),
+      adult_price_usd: Math.round(Number(adult) * 100) / 100,
+      child_price_usd: Math.round(Number(child) * 100) / 100,
     });
     setNotice(res.ok ? 'Guardado ✓' : res.message ?? null);
   }
@@ -90,6 +94,10 @@ export function SettingsForm(props: {
             <Button className="h-11" variant="outline" disabled={!ovDate}
               onClick={async () => {
                 setNotice(null);
+                if (ovCap.trim() === '') {
+                  setNotice('Capacidad requerida.');
+                  return;
+                }
                 const res = await adminUpsertOverride(ovDate, Number(ovCap));
                 if (!res.ok) setNotice(res.message ?? null);
                 setOvDate('');
