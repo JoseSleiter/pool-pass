@@ -47,7 +47,16 @@ export function StepDetails(props: {
             className="[--cell-size:2.75rem]"
             mode="single"
             selected={selected}
-            onSelect={(d) => d && setData({ ...data, date: format(d, 'yyyy-MM-dd') })}
+            onSelect={(d) => {
+              if (d) {
+                setData({ ...data, date: format(d, 'yyyy-MM-dd') });
+                setErrors((e) => {
+                  const rest = { ...e };
+                  delete rest.date;
+                  return rest;
+                });
+              }
+            }}
             onMonthChange={(m) => props.onMonthChange?.(format(m, 'yyyy-MM'))}
             disabled={(d) => {
               const key = format(d, 'yyyy-MM-dd');
