@@ -39,7 +39,7 @@ export function VoucherEmail(p: VoucherEmailProps) {
           <Text style={value}>{`${adultsLabel}, ${childrenLabel}`}</Text>
           <Text style={label}>Total pagado</Text>
           <Text style={value}>
-            {`$${p.totalUsd.toFixed(2)} / Bs. ${p.totalVes.toFixed(2)} (tasa BCV ${p.bcvRate})`}
+            {`$${p.totalUsd.toFixed(2)} / Bs. ${p.totalVes.toFixed(2)} (tasa BCV ${p.bcvRate.toFixed(2)})`}
           </Text>
           <Text style={label}>Reserva</Text>
           <Text style={value}>{p.code}</Text>
