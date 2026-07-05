@@ -47,11 +47,11 @@ export async function adminCheckIn(id: string): Promise<{ ok: boolean; message?:
 
 export async function adminResendVoucher(id: string): Promise<{ ok: boolean; message?: string }> {
   await requireAdmin();
-  const r = await getReservation(id);
-  if (!r || !['confirmed', 'checked_in'].includes(r.status)) {
-    return { ok: false, message: 'Reserva no reenviable.' };
-  }
   try {
+    const r = await getReservation(id);
+    if (!r || !['confirmed', 'checked_in'].includes(r.status)) {
+      return { ok: false, message: 'Reserva no reenviable.' };
+    }
     await sendVoucherEmail({
       reservationId: r.id, code: r.code, email: r.email,
       firstName: r.first_name, lastName: r.last_name,
@@ -61,6 +61,6 @@ export async function adminResendVoucher(id: string): Promise<{ ok: boolean; mes
     });
     return { ok: true };
   } catch {
-    return { ok: false, message: 'No se pudo enviar el correo.' };
+    return { ok: false, message: 'No se pudo reenviar el correo.' };
   }
 }

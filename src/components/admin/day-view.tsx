@@ -20,7 +20,10 @@ export function AdminDayView(props: {
         type="date"
         className="h-11 w-fit"
         value={props.date}
-        onChange={(e) => router.push(`/admin?date=${e.target.value}`)}
+        onChange={(e) => {
+          setNotice(null);
+          router.push(`/admin?date=${e.target.value}`);
+        }}
       />
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="rounded-lg border p-3">
@@ -40,11 +43,13 @@ export function AdminDayView(props: {
       <ReservationsTable
         rows={props.rows}
         onCheckIn={async (id) => {
+          setNotice(null);
           const res = await adminCheckIn(id);
           setNotice(res.ok ? 'Entrada registrada.' : res.message ?? null);
           router.refresh();
         }}
         onResend={async (id) => {
+          setNotice(null);
           const res = await adminResendVoucher(id);
           setNotice(res.ok ? 'Correo reenviado.' : res.message ?? null);
         }}
