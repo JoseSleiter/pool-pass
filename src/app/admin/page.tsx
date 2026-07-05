@@ -1,12 +1,9 @@
 import Link from 'next/link';
 import { adminListReservations, adminGetDaySummary } from './actions';
 import { AdminDayView } from '@/components/admin/day-view';
+import { todayCaracas } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
-
-function todayCaracas(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
-}
 
 export default async function AdminHome({
   searchParams,

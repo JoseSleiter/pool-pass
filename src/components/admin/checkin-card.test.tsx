@@ -40,6 +40,20 @@ describe('CheckinCard', () => {
       />
     );
     expect(screen.getByTestId('banner')).toHaveTextContent(/ya registró entrada/i);
+    // 14:00 UTC = 10:00 in America/Caracas (UTC-4)
+    expect(screen.getByTestId('banner')).toHaveTextContent('10:00');
+    expect(screen.queryByRole('button', { name: /registrar entrada/i })).toBeNull();
+  });
+
+  it('already checked in wins over wrong date', () => {
+    render(
+      <CheckinCard
+        reservation={row({ status: 'checked_in', date: '2030-01-20', checked_in_at: '2030-01-20T14:00:00Z' })}
+        today={TODAY}
+        onCheckIn={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId('banner')).toHaveTextContent(/ya registró entrada/i);
     expect(screen.queryByRole('button', { name: /registrar entrada/i })).toBeNull();
   });
 

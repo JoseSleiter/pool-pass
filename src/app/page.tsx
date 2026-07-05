@@ -1,13 +1,12 @@
 import { BookingWizard } from '@/components/booking/booking-wizard';
 import { getPublicPrices, getAvailability } from '@/app/actions/booking';
+import { todayCaracas } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   // Anchor "current month" to Venezuela's clock, not the server's (UTC rolls over ~4h early).
-  const month = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' })
-    .format(new Date())
-    .slice(0, 7);
+  const month = todayCaracas().slice(0, 7);
   const [prices, availability] = await Promise.all([
     getPublicPrices(),
     getAvailability(month),

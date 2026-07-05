@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { caracasTime } from '@/lib/dates';
 import type { ReservationRow } from '@/lib/db/reservations';
 
 type BannerKind = 'valid' | 'wrong-date' | 'already-in' | 'invalid';
@@ -21,7 +22,7 @@ const BANNER: Record<BannerKind, { text: (r: ReservationRow) => string; cls: str
     cls: 'bg-yellow-100 text-yellow-900',
   },
   'already-in': {
-    text: (r) => `⛔ Ya registró entrada (${r.checked_in_at?.slice(11, 16) ?? ''})`,
+    text: (r) => `⛔ Ya registró entrada (${r.checked_in_at ? caracasTime(r.checked_in_at) : ''})`,
     cls: 'bg-red-100 text-red-900',
   },
   invalid: { text: (r) => `⛔ Reserva no válida (estado: ${r.status})`, cls: 'bg-red-100 text-red-900' },

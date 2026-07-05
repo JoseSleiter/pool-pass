@@ -2,12 +2,9 @@ import Link from 'next/link';
 import { getReservation } from '@/lib/db/reservations';
 import { adminCheckIn } from '@/app/admin/actions';
 import { CheckinCard } from '@/components/admin/checkin-card';
+import { todayCaracas } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
-
-function todayCaracas(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
-}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
