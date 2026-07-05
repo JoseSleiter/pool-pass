@@ -17,9 +17,14 @@ export async function getBcvRate(deps: RateDeps): Promise<number | null> {
 
   try {
     const rate = await deps.fetchRate();
-    await deps.writeCache(rate, now);
+    try {
+      await deps.writeCache(rate, now);
+    } catch (e) {
+      console.error('bcv: cache write failed (rate still served):', e);
+    }
     return rate;
-  } catch {
+  } catch (e) {
+    console.error('bcv: rate fetch failed:', e);
     if (cached && now - cached.fetchedAt < MAX_STALE_MS) return cached.rate;
     return null;
   }
@@ -27,7 +32,10 @@ export async function getBcvRate(deps: RateDeps): Promise<number | null> {
 
 /** Production fetcher: dolarapi "oficial" mirror of the BCV rate. */
 export async function fetchBcvRateFromMirror(): Promise<number> {
-  const res = await fetch(process.env.BCV_RATE_URL!, { cache: 'no-store' });
+  const res = await fetch(process.env.BCV_RATE_URL!, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(8000),
+  });
   if (!res.ok) throw new Error(`BCV mirror HTTP ${res.status}`);
   const body = (await res.json()) as { promedio: number };
   if (typeof body.promedio !== 'number' || body.promedio <= 0) {

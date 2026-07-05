@@ -50,4 +50,28 @@ describe('getBcvRate', () => {
     const d = deps({ fetchRate: vi.fn(async () => { throw new Error('down'); }) });
     expect(await getBcvRate(d)).toBeNull();
   });
+
+  it('still returns the fetched rate when writeCache throws', async () => {
+    const d = deps({
+      writeCache: vi.fn(async () => { throw new Error('db down'); }),
+      readCache: vi.fn(async () => ({ rate: 36.1, fetchedAt: NOW - 2 * 60 * 60_000 })),
+    });
+    expect(await getBcvRate(d)).toBe(36.5);
+  });
+
+  it('treats a cache exactly 1h old as stale and fetches', async () => {
+    const d = deps({
+      readCache: vi.fn(async () => ({ rate: 36.1, fetchedAt: NOW - 60 * 60_000 })),
+    });
+    expect(await getBcvRate(d)).toBe(36.5);
+    expect(d.fetchRate).toHaveBeenCalled();
+  });
+
+  it('returns null when fetch fails and cache is exactly 24h old', async () => {
+    const d = deps({
+      fetchRate: vi.fn(async () => { throw new Error('down'); }),
+      readCache: vi.fn(async () => ({ rate: 36.1, fetchedAt: NOW - 24 * 60 * 60_000 })),
+    });
+    expect(await getBcvRate(d)).toBeNull();
+  });
 });
