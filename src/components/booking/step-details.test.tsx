@@ -1,0 +1,49 @@
+// @vitest-environment jsdom
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { StepDetails } from './step-details';
+
+const prices = { adult: 15, child: 5 };
+
+function setup() {
+  const onNext = vi.fn();
+  render(
+    <StepDetails
+      prices={prices}
+      availability={{}}
+      initial={{ date: '2030-01-15', adults: 1, children: 0, firstName: '', lastName: '', email: '' }}
+      onNext={onNext}
+    />
+  );
+  return { onNext };
+}
+
+describe('StepDetails', () => {
+  it('shows the live USD total and updates it when steppers change', async () => {
+    setup();
+    expect(screen.getByTestId('total-usd')).toHaveTextContent('$15.00');
+    await userEvent.click(screen.getByRole('button', { name: /aumentar adultos/i }));
+    await userEvent.click(screen.getByRole('button', { name: /aumentar niños/i }));
+    expect(screen.getByTestId('total-usd')).toHaveTextContent('$35.00');
+  });
+
+  it('does not allow adults below 1', async () => {
+    setup();
+    await userEvent.click(screen.getByRole('button', { name: /disminuir adultos/i }));
+    expect(screen.getByTestId('adults-count')).toHaveTextContent('1');
+  });
+
+  it('requires contact fields before continuing', async () => {
+    const { onNext } = setup();
+    await userEvent.click(screen.getByRole('button', { name: /continuar/i }));
+    expect(onNext).not.toHaveBeenCalled();
+    await userEvent.type(screen.getByLabelText(/nombre/i), 'Ana');
+    await userEvent.type(screen.getByLabelText(/apellido/i), 'Pérez');
+    await userEvent.type(screen.getByLabelText(/correo/i), 'ana@example.com');
+    await userEvent.click(screen.getByRole('button', { name: /continuar/i }));
+    expect(onNext).toHaveBeenCalledWith(
+      expect.objectContaining({ firstName: 'Ana', lastName: 'Pérez', email: 'ana@example.com' })
+    );
+  });
+});
