@@ -59,25 +59,36 @@ export async function confirmReservation(
   id: string,
   p: { bcvRate: number; totalVes: number; paymentRef: string }
 ): Promise<void> {
-  const { error } = await serviceClient()
+  const { data, error } = await serviceClient()
     .from('reservations')
     .update({ status: 'confirmed', bcv_rate: p.bcvRate, total_ves: p.totalVes, payment_ref: p.paymentRef })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('status', 'pending_payment')
+    .select('id');
   if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error('reservation not in expected status');
 }
 
 export async function failReservation(id: string): Promise<void> {
-  const { error } = await serviceClient()
-    .from('reservations').update({ status: 'failed' }).eq('id', id);
+  const { data, error } = await serviceClient()
+    .from('reservations')
+    .update({ status: 'failed' })
+    .eq('id', id)
+    .eq('status', 'pending_payment')
+    .select('id');
   if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error('reservation not in expected status');
 }
 
 export async function checkInReservation(id: string): Promise<void> {
-  const { error } = await serviceClient()
+  const { data, error } = await serviceClient()
     .from('reservations')
     .update({ status: 'checked_in', checked_in_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('status', 'confirmed')
+    .select('id');
   if (error) throw new Error(error.message);
+  if (!data || data.length === 0) throw new Error('reservation not in expected status');
 }
 
 export async function getReservation(id: string): Promise<ReservationRow | null> {

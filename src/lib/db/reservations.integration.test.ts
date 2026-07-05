@@ -65,6 +65,36 @@ describe('reservations data layer', () => {
     expect(avail[DATE]).toBe(7);
   });
 
+  it('checkInReservation rejects while still pending_payment', async () => {
+    const r = await reserveSlots(input);
+    if (!r.ok) throw new Error('setup failed');
+    await expect(checkInReservation(r.id)).rejects.toThrow();
+    const row = await getReservation(r.id);
+    expect(row!.status).toBe('pending_payment');
+    expect(row!.checked_in_at).toBeNull();
+  });
+
+  it('confirmReservation rejects on a failed reservation', async () => {
+    const r = await reserveSlots(input);
+    if (!r.ok) throw new Error('setup failed');
+    await failReservation(r.id);
+    await expect(
+      confirmReservation(r.id, { bcvRate: 36.5, totalVes: 1277.5, paymentRef: 'REF-9' })
+    ).rejects.toThrow();
+    const row = await getReservation(r.id);
+    expect(row!.status).toBe('failed');
+  });
+
+  it('double checkInReservation rejects on the second call', async () => {
+    const r = await reserveSlots(input);
+    if (!r.ok) throw new Error('setup failed');
+    await confirmReservation(r.id, { bcvRate: 36.5, totalVes: 1277.5, paymentRef: 'REF-9' });
+    await checkInReservation(r.id);
+    await expect(checkInReservation(r.id)).rejects.toThrow();
+    const row = await getReservation(r.id);
+    expect(row!.status).toBe('checked_in');
+  });
+
   it('rate cache round-trips through settings', async () => {
     await writeRateCache(36.77, Date.parse('2030-02-10T12:00:00Z'));
     const cached = await readRateCache();
