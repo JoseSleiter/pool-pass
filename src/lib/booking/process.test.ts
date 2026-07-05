@@ -72,6 +72,13 @@ describe('processBooking', () => {
     expect(d.confirm).not.toHaveBeenCalled();
   });
 
+  it('confirm failing after an approved charge routes to payment_pending (never a generic error)', async () => {
+    const d = deps({ confirm: vi.fn(async () => { throw new Error('db down'); }) });
+    const res = await processBooking(input, d);
+    expect(res).toMatchObject({ ok: false, error: 'payment_pending' });
+    expect(d.sendVoucher).not.toHaveBeenCalled();
+  });
+
   it('voucher email failure does not break a confirmed booking', async () => {
     const d = deps({ sendVoucher: vi.fn(async () => { throw new Error('resend down'); }) });
     const res = await processBooking(input, d);

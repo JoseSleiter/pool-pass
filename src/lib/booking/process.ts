@@ -89,7 +89,16 @@ export async function processBooking(raw: unknown, deps: BookingDeps): Promise<B
     };
   }
 
-  await deps.confirm(reserved.id, { bcvRate: rate, totalVes: ves, paymentRef: payment.reference });
+  try {
+    await deps.confirm(reserved.id, { bcvRate: rate, totalVes: ves, paymentRef: payment.reference });
+  } catch (e) {
+    // Charged but not confirmed: never surface a generic error; admin verifies manually.
+    console.error('booking: confirm failed after approved charge:', e);
+    return {
+      ok: false, error: 'payment_pending',
+      message: 'Tu pago está siendo verificado. Te contactaremos con la confirmación.',
+    };
+  }
 
   try {
     await deps.sendVoucher({
