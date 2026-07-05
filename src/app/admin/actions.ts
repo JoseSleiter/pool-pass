@@ -1,10 +1,12 @@
 'use server';
 
+import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { ssrClient } from '@/lib/db/ssr-client';
 import {
   listReservationsByDate, getReservation, checkInReservation,
-  getSettings, type ReservationRow,
+  getSettings, updateSettings, listOverrides, upsertOverride, deleteOverride,
+  type ReservationRow,
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
 
@@ -62,5 +64,56 @@ export async function adminResendVoucher(id: string): Promise<{ ok: boolean; mes
     return { ok: true };
   } catch {
     return { ok: false, message: 'No se pudo reenviar el correo.' };
+  }
+}
+
+const settingsSchema = z.object({
+  daily_capacity: z.number().int().min(0).max(10000),
+  adult_price_usd: z.number().min(0).max(1000),
+  child_price_usd: z.number().min(0).max(1000),
+});
+
+export async function adminGetSettings() {
+  await requireAdmin();
+  const [settings, overrides] = await Promise.all([getSettings(), listOverrides()]);
+  return { settings, overrides };
+}
+
+export async function adminUpdateSettings(raw: unknown): Promise<{ ok: boolean; message?: string }> {
+  await requireAdmin();
+  const parsed = settingsSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, message: 'Valores inválidos.' };
+  try {
+    await updateSettings(parsed.data);
+    revalidatePath('/admin/settings');
+    return { ok: true };
+  } catch {
+    return { ok: false, message: 'No se pudo guardar.' };
+  }
+}
+
+export async function adminUpsertOverride(date: string, capacity: number): Promise<{ ok: boolean; message?: string }> {
+  await requireAdmin();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(capacity) || capacity < 0 || capacity > 10000) {
+    return { ok: false, message: 'Valores inválidos.' };
+  }
+  try {
+    await upsertOverride(date, capacity);
+    revalidatePath('/admin/settings');
+    return { ok: true };
+  } catch {
+    return { ok: false, message: 'No se pudo guardar.' };
+  }
+}
+
+export async function adminDeleteOverride(date: string): Promise<{ ok: boolean; message?: string }> {
+  await requireAdmin();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, message: 'Fecha inválida.' };
+  try {
+    await deleteOverride(date);
+    revalidatePath('/admin/settings');
+    return { ok: true };
+  } catch {
+    return { ok: false, message: 'No se pudo eliminar.' };
   }
 }

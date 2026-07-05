@@ -5,6 +5,7 @@ import {
   reserveSlots, confirmReservation, failReservation,
   getReservation, checkInReservation, monthAvailability,
   getSettings, readRateCache, writeRateCache,
+  updateSettings, listOverrides, upsertOverride, deleteOverride,
 } from './reservations';
 
 const supabase = createClient(
@@ -101,5 +102,47 @@ describe('reservations data layer', () => {
     expect(cached).toEqual({ rate: 36.77, fetchedAt: Date.parse('2030-02-10T12:00:00Z') });
     const settings = await getSettings();
     expect(settings.daily_capacity).toBeGreaterThan(0);
+  });
+});
+
+describe('settings & capacity override helpers', () => {
+  const OV_DATE = '2030-03-05';
+
+  beforeEach(async () => {
+    await supabase.from('capacity_overrides').delete().eq('date', OV_DATE);
+  });
+
+  it('upsertOverride creates then updates a row visible via listOverrides', async () => {
+    await upsertOverride(OV_DATE, 5);
+    let overrides = await listOverrides();
+    expect(overrides).toContainEqual({ date: OV_DATE, capacity: 5 });
+
+    await upsertOverride(OV_DATE, 0);
+    overrides = await listOverrides();
+    expect(overrides).toContainEqual({ date: OV_DATE, capacity: 0 });
+  });
+
+  it('deleteOverride removes the row', async () => {
+    await upsertOverride(OV_DATE, 5);
+    await deleteOverride(OV_DATE);
+    const overrides = await listOverrides();
+    expect(overrides.find((o) => o.date === OV_DATE)).toBeUndefined();
+  });
+
+  it('updateSettings round-trips via getSettings, then restores original values', async () => {
+    const original = await getSettings();
+    try {
+      await updateSettings({ daily_capacity: 42, adult_price_usd: 12.5, child_price_usd: 6.25 });
+      const updated = await getSettings();
+      expect(updated.daily_capacity).toBe(42);
+      expect(Number(updated.adult_price_usd)).toBe(12.5);
+      expect(Number(updated.child_price_usd)).toBe(6.25);
+    } finally {
+      await updateSettings({
+        daily_capacity: original.daily_capacity,
+        adult_price_usd: Number(original.adult_price_usd),
+        child_price_usd: Number(original.child_price_usd),
+      });
+    }
   });
 });

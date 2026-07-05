@@ -165,3 +165,29 @@ export async function monthAvailability(month: string): Promise<Record<string, n
   }
   return result;
 }
+
+export async function updateSettings(p: {
+  daily_capacity: number; adult_price_usd: number; child_price_usd: number;
+}): Promise<void> {
+  const { error } = await serviceClient().from('settings').update(p).eq('id', 1);
+  if (error) throw new Error(error.message);
+}
+
+export async function listOverrides(): Promise<{ date: string; capacity: number }[]> {
+  const { data, error } = await serviceClient()
+    .from('capacity_overrides').select('*').order('date');
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function upsertOverride(date: string, capacity: number): Promise<void> {
+  const { error } = await serviceClient()
+    .from('capacity_overrides').upsert({ date, capacity });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteOverride(date: string): Promise<void> {
+  const { error } = await serviceClient()
+    .from('capacity_overrides').delete().eq('date', date);
+  if (error) throw new Error(error.message);
+}
