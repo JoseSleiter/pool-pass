@@ -1,13 +1,16 @@
-import { format } from 'date-fns';
 import { BookingWizard } from '@/components/booking/booking-wizard';
 import { getPublicPrices, getAvailability } from '@/app/actions/booking';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
+  // Anchor "current month" to Venezuela's clock, not the server's (UTC rolls over ~4h early).
+  const month = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' })
+    .format(new Date())
+    .slice(0, 7);
   const [prices, availability] = await Promise.all([
     getPublicPrices(),
-    getAvailability(format(new Date(), 'yyyy-MM')),
+    getAvailability(month),
   ]);
   return (
     <main className="mx-auto max-w-md p-4">

@@ -32,14 +32,19 @@ export function StepDetails(props: {
       setErrors(errs);
       return;
     }
+    if (props.availability[parsed.data.date] !== undefined && props.availability[parsed.data.date] <= 0) {
+      setErrors({ date: 'Fecha no disponible. Elige otra fecha.' });
+      return;
+    }
     props.onNext(parsed.data);
   }
 
   return (
     <div className="space-y-4">
       <Card>
-        <CardContent className="flex justify-center pt-4">
+        <CardContent className="flex flex-col items-center pt-4">
           <Calendar
+            className="[--cell-size:2.75rem]"
             mode="single"
             selected={selected}
             onSelect={(d) => d && setData({ ...data, date: format(d, 'yyyy-MM-dd') })}
@@ -52,6 +57,7 @@ export function StepDetails(props: {
               return props.availability[key] !== undefined && props.availability[key] <= 0;
             }}
           />
+          {errors.date && <p className="mt-2 text-sm text-destructive">{errors.date}</p>}
         </CardContent>
       </Card>
 

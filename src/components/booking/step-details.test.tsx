@@ -34,6 +34,24 @@ describe('StepDetails', () => {
     expect(screen.getByTestId('adults-count')).toHaveTextContent('1');
   });
 
+  it('blocks continuing when the selected date is sold out', async () => {
+    const onNext = vi.fn();
+    render(
+      <StepDetails
+        prices={prices}
+        availability={{ '2030-01-15': 0 }}
+        initial={{ date: '2030-01-15', adults: 1, children: 0, firstName: '', lastName: '', email: '' }}
+        onNext={onNext}
+      />
+    );
+    await userEvent.type(screen.getByLabelText(/nombre/i), 'Ana');
+    await userEvent.type(screen.getByLabelText(/apellido/i), 'Pérez');
+    await userEvent.type(screen.getByLabelText(/correo/i), 'ana@example.com');
+    await userEvent.click(screen.getByRole('button', { name: /continuar/i }));
+    expect(onNext).not.toHaveBeenCalled();
+    expect(screen.getByText(/fecha no disponible/i)).toBeInTheDocument();
+  });
+
   it('requires contact fields before continuing', async () => {
     const { onNext } = setup();
     await userEvent.click(screen.getByRole('button', { name: /continuar/i }));
