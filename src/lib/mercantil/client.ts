@@ -55,6 +55,7 @@ export async function payC2p(req: C2pRequest, cfg: MercantilConfig): Promise<C2p
       payment_method: 'c2p',
       currency: 'ves',
       amount: req.amountVes,
+      // numeric per Mercantil samples ('0105' → 105); wire-contract item in deploy checklist
       destination_bank_id: Number(req.destinationBankCode),
       destination_id: encryptField(req.destinationId, cfg.secretKey),
       destination_mobile_number: encryptField(req.destinationPhone, cfg.secretKey),
@@ -75,10 +76,15 @@ export async function payC2p(req: C2pRequest, cfg: MercantilConfig): Promise<C2p
     if (trx?.trx_status === 'approved') {
       return { status: 'approved', reference: String(trx.payment_reference ?? '') };
     }
-    if (trx?.trx_status) {
+    // Only explicitly terminal rejections release capacity; anything else
+    // (pending, unrecognized statuses, missing envelope) stays 'unknown'.
+    if (trx?.trx_status === 'rejected' || trx?.trx_status === 'denied') {
       return { status: 'declined', message: String(trx.trx_status_description ?? 'Pago rechazado') };
     }
-    return { status: 'unknown', message: `Respuesta ambigua del banco (HTTP ${res.status})` };
+    return {
+      status: 'unknown',
+      message: `Estado no terminal (${trx?.trx_status ?? 'HTTP ' + res.status})`,
+    };
   } catch (e) {
     console.error('mercantil: payment request failed:', e);
     return { status: 'unknown', message: e instanceof Error ? e.message : 'Fallo de red' };

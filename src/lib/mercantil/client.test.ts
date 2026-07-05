@@ -45,6 +45,22 @@ describe('payC2p', () => {
     expect(body.transaction_c2p.amount).toBe(1625.55);
   });
 
+  it('serializes destination_bank_id as a number (bankCode "0105" → 105)', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          transaction_c2p_response: { trx_status: 'approved', payment_reference: 'REF-1' },
+        }),
+        { status: 200 }
+      )
+    );
+    await payC2p(req, cfg);
+    const [, init] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const body = JSON.parse(init.body as string);
+    // numeric per Mercantil samples: '0105' → 105
+    expect(body.transaction_c2p.destination_bank_id).toBe(105);
+  });
+
   it('returns declined with the error description on rejection', async () => {
     (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
       new Response(
@@ -59,6 +75,27 @@ describe('payC2p', () => {
     );
     const res = await payC2p(req, cfg);
     expect(res).toEqual({ status: 'declined', message: 'Clave inválida' });
+  });
+
+  it('maps a non-terminal trx_status (pending) to unknown, never declined', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          transaction_c2p_response: { trx_status: 'pending' },
+        }),
+        { status: 200 }
+      )
+    );
+    const res = await payC2p(req, cfg);
+    expect(res.status).toBe('unknown');
+  });
+
+  it('returns unknown on an error response without a transaction envelope (HTTP 401)', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: 'AUTH' } }), { status: 401 })
+    );
+    const res = await payC2p(req, cfg);
+    expect(res.status).toBe('unknown');
   });
 
   it('returns unknown on network failure (never assume declined)', async () => {
