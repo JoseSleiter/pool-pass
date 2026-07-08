@@ -45,4 +45,37 @@ describe('ReservationsTable', () => {
     );
     expect(screen.getAllByRole('button', { name: /check-in/i })).toHaveLength(1);
   });
+
+  it('shows compact party labels', () => {
+    render(
+      <ReservationsTable
+        rows={[row({ adults: 2, children: 1 })]}
+        onCheckIn={vi.fn()}
+        onResend={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/2A 1N/)).toBeInTheDocument();
+  });
+
+  it('shows check-in time for checked_in rows', () => {
+    render(
+      <ReservationsTable
+        rows={[row({ status: 'checked_in', checked_in_at: '2030-01-15T14:15:00Z' })]}
+        onCheckIn={vi.fn()}
+        onResend={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/ingresó 10:15/i)).toBeInTheDocument();
+  });
+
+  it('labels pending rows as payment under verification', () => {
+    render(
+      <ReservationsTable
+        rows={[row({ status: 'pending_payment' })]}
+        onCheckIn={vi.fn()}
+        onResend={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/pago en verificación/i)).toBeInTheDocument();
+  });
 });

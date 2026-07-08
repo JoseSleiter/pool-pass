@@ -18,7 +18,7 @@ export default async function AdminHome({
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 p-4">
-      <h1 className="text-xl font-bold">Reservas</h1>
+      <h1 className="text-xl font-bold">Reservas del día</h1>
       <AdminDayView date={date} rows={rows} summary={summary} />
     </main>
   );
