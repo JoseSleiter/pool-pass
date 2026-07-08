@@ -14,6 +14,7 @@ const supabase = createClient(
   { realtime: { transport: ws as never } }
 );
 const DATE = '2030-02-10';
+const CHILD_ONLY_DATE = '2030-02-15';
 
 const input = {
   date: DATE, firstName: 'Ana', lastName: 'Pérez', email: 'ana@example.com',
@@ -24,6 +25,7 @@ describe('reservations data layer', () => {
   beforeEach(async () => {
     await supabase.from('reservations').delete().eq('date', DATE);
     await supabase.from('capacity_overrides').delete().eq('date', DATE);
+    await supabase.from('reservations').delete().eq('date', CHILD_ONLY_DATE);
   });
 
   it('reserveSlots returns id+code on success and remaining on capacity error', async () => {
@@ -94,6 +96,14 @@ describe('reservations data layer', () => {
     await expect(checkInReservation(r.id)).rejects.toThrow();
     const row = await getReservation(r.id);
     expect(row!.status).toBe('checked_in');
+  });
+
+  it('accepts a child-only reservation (0 adults, 2 children)', async () => {
+    const res = await reserveSlots({
+      date: CHILD_ONLY_DATE, firstName: 'Ana', lastName: 'Pérez', email: 'ana@example.com',
+      idType: 'V', idNumber: '12345678', adults: 0, children: 2, totalUsd: 10,
+    });
+    expect(res.ok).toBe(true);
   });
 
   it('rate cache round-trips through settings', async () => {
