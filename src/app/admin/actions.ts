@@ -17,21 +17,38 @@ async function requireAdmin(): Promise<void> {
   if (!user) throw new Error('Unauthorized');
 }
 
+export interface DaySummary {
+  capacity: number;
+  confirmedPeople: number;
+  checkedInParties: number;
+  checkedInPeople: number;
+  revenueUsd: number;
+  revenueVes: number;
+  paidCount: number;
+  pendingCount: number;
+}
+
 export async function adminListReservations(date: string): Promise<ReservationRow[]> {
   await requireAdmin();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Invalid date');
   return listReservationsByDate(date);
 }
 
-export async function adminGetDaySummary(date: string) {
+export async function adminGetDaySummary(date: string): Promise<DaySummary> {
   await requireAdmin();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Invalid date');
   const [rows, settings] = await Promise.all([listReservationsByDate(date), getSettings()]);
-  const active = rows.filter((r) => ['confirmed', 'checked_in'].includes(r.status));
+  const paid = rows.filter((r) => ['confirmed', 'checked_in'].includes(r.status));
+  const checkedIn = rows.filter((r) => r.status === 'checked_in');
   return {
     capacity: settings.daily_capacity,
-    confirmedPeople: active.reduce((s, r) => s + r.adults + r.children, 0),
-    checkedInParties: rows.filter((r) => r.status === 'checked_in').length,
+    confirmedPeople: paid.reduce((s, r) => s + r.adults + r.children, 0),
+    checkedInParties: checkedIn.length,
+    checkedInPeople: checkedIn.reduce((s, r) => s + r.adults + r.children, 0),
+    revenueUsd: paid.reduce((s, r) => s + Number(r.total_usd), 0),
+    revenueVes: paid.reduce((s, r) => s + Number(r.total_ves ?? 0), 0),
+    paidCount: paid.length,
+    pendingCount: rows.filter((r) => r.status === 'pending_payment').length,
   };
 }
 

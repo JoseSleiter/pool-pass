@@ -118,3 +118,41 @@ describe('admin settings validation (authorized user)', () => {
     expect(upsertOverride).not.toHaveBeenCalled();
   });
 });
+
+describe('adminGetDaySummary aggregates (authorized user)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = { id: 'admin-1' };
+  });
+
+  it('computes occupancy, revenue and pending counts from the day rows', async () => {
+    const row = (over: Record<string, unknown>) => ({
+      id: 'x', code: 'PP-00000', date: '2030-01-15', first_name: 'A', last_name: 'B',
+      email: 'a@b.c', id_type: 'V', id_number: '1', adults: 2, children: 1,
+      total_usd: 35, bcv_rate: 36.5, total_ves: 1277.5, status: 'confirmed',
+      payment_ref: null, expires_at: null, checked_in_at: null, created_at: '', ...over,
+    });
+    vi.mocked(listReservationsByDate).mockResolvedValue([
+      row({ status: 'confirmed' }),
+      row({ status: 'checked_in', adults: 1, children: 0, total_usd: 15, total_ves: 547.5 }),
+      row({ status: 'pending_payment' }),
+      row({ status: 'failed' }),
+    ] as never);
+    vi.mocked(getSettings).mockResolvedValue({
+      daily_capacity: 100, adult_price_usd: 15, child_price_usd: 5,
+      last_bcv_rate: null, last_bcv_rate_at: null,
+    } as never);
+
+    const s = await adminGetDaySummary('2030-01-15');
+    expect(s).toEqual({
+      capacity: 100,
+      confirmedPeople: 4,      // 3 (confirmed) + 1 (checked_in); pending/failed excluded
+      checkedInParties: 1,
+      checkedInPeople: 1,
+      revenueUsd: 50,          // 35 + 15
+      revenueVes: 1825,        // 1277.5 + 547.5
+      paidCount: 2,
+      pendingCount: 1,
+    });
+  });
+});
