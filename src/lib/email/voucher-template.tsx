@@ -1,6 +1,7 @@
 import {
   Html, Head, Body, Container, Section, Text, Heading, Img, Hr,
 } from '@react-email/components';
+import { partyLabel } from '@/lib/party';
 
 export interface VoucherEmailProps {
   firstName: string; lastName: string; idType: string; idNumber: string;
@@ -12,8 +13,6 @@ const label = { color: '#6b7280', fontSize: '13px', margin: '0' } as const;
 const value = { color: '#111827', fontSize: '16px', margin: '0 0 12px' } as const;
 
 export function VoucherEmail(p: VoucherEmailProps) {
-  const childrenLabel = p.children === 1 ? '1 niño' : `${p.children} niños`;
-  const adultsLabel = p.adults === 1 ? '1 adulto' : `${p.adults} adultos`;
   return (
     <Html lang="es">
       <Head />
@@ -36,7 +35,7 @@ export function VoucherEmail(p: VoucherEmailProps) {
           <Text style={label}>Fecha de reserva</Text>
           <Text style={value}>{p.date}</Text>
           <Text style={label}>Asistentes</Text>
-          <Text style={value}>{`${adultsLabel}, ${childrenLabel}`}</Text>
+          <Text style={value}>{partyLabel(p.adults, p.children)}</Text>
           <Text style={label}>Total pagado</Text>
           <Text style={value}>
             {`$${p.totalUsd.toFixed(2)} / Bs. ${p.totalVes.toFixed(2)} (tasa BCV ${p.bcvRate.toFixed(2)})`}

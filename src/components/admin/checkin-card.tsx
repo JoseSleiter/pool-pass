@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { caracasTime } from '@/lib/dates';
+import { partyLabel } from '@/lib/party';
 import type { ReservationRow } from '@/lib/db/reservations';
 
 type BannerKind = 'valid' | 'wrong-date' | 'already-in' | 'invalid';
@@ -48,7 +49,7 @@ export function CheckinCard(props: {
         <CardContent className="space-y-1 pt-4">
           <p className="font-mono text-lg font-bold">{r.code}</p>
           <p>{r.first_name} {r.last_name} · {r.id_type}-{r.id_number}</p>
-          <p>{r.adults} adultos, {r.children} niños</p>
+          <p>{partyLabel(r.adults, r.children)}</p>
           <p className="text-sm text-muted-foreground">
             Pagado: ${Number(r.total_usd).toFixed(2)} / Bs. {Number(r.total_ves ?? 0).toFixed(2)}
           </p>

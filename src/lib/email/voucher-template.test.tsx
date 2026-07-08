@@ -20,4 +20,10 @@ describe('VoucherEmail', () => {
     }
     expect(html).toContain('https://app.test/api/qr/uuid-1');
   });
+
+  it('renders a child-only party without a 0 adultos label', async () => {
+    const html = await render(<VoucherEmail {...{ ...props, adults: 0, children: 2 }} />);
+    expect(html).toContain('2 niños');
+    expect(html).not.toContain('0 adultos');
+  });
 });

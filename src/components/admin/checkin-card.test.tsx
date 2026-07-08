@@ -62,6 +62,12 @@ describe('CheckinCard', () => {
     expect(screen.getByTestId('banner')).toHaveTextContent(/no válida/i);
   });
 
+  it('child-only booking shows party label without "0 adultos"', () => {
+    render(<CheckinCard reservation={row({ adults: 0, children: 2 })} today={TODAY} onCheckIn={vi.fn()} />);
+    expect(screen.getByText('2 niños')).toBeInTheDocument();
+    expect(screen.queryByText(/0 adultos/)).toBeNull();
+  });
+
   it('failed check-in action shows the returned message', async () => {
     const { default: userEvent } = await import('@testing-library/user-event');
     const onCheckIn = vi.fn(async () => ({ ok: false as const, message: 'La reserva no está en estado confirmado.' }));
