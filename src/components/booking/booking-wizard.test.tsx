@@ -14,20 +14,26 @@ import { submitBookingAndPay } from '@/app/actions/booking';
 
 const prices = { adult: 15, child: 5 };
 
+// Radix's Select popper renders its item mid-position (opacity/pointer-events
+// still settling) for a tick in jsdom, which has no real layout pass. Disable
+// user-event's pointer-events guard so clicks on those items aren't flagged
+// as "not clickable" — the click itself is still a real, valid interaction.
+const user = userEvent.setup({ pointerEventsCheck: 0 });
+
 async function fillDetailsAndContinue() {
-  await userEvent.type(screen.getByLabelText(/nombre/i), 'Ana');
-  await userEvent.type(screen.getByLabelText(/apellido/i), 'Pérez');
-  await userEvent.type(screen.getByLabelText(/correo electrónico/i), 'ana@example.com');
-  await userEvent.click(screen.getByRole('button', { name: /continuar/i }));
+  await user.type(screen.getByLabelText(/nombre/i), 'Ana');
+  await user.type(screen.getByLabelText(/apellido/i), 'Pérez');
+  await user.type(screen.getByLabelText(/correo electrónico/i), 'ana@example.com');
+  await user.click(screen.getByRole('button', { name: /continuar/i }));
 }
 
 async function fillPaymentAndPay() {
-  await userEvent.type(screen.getByLabelText(/número de documento/i), '12345678');
-  await userEvent.type(screen.getByLabelText(/teléfono/i), '04141234567');
-  await userEvent.click(document.getElementById('bank')!);
-  await userEvent.click(await screen.findByText(/0102 — Banco de Venezuela/));
-  await userEvent.type(screen.getByLabelText(/clave de pago/i), '123456');
-  await userEvent.click(screen.getByRole('button', { name: /pagar/i }));
+  await user.type(screen.getByLabelText(/número de documento/i), '12345678');
+  await user.type(screen.getByLabelText(/teléfono/i), '04141234567');
+  await user.click(document.getElementById('bank')!);
+  await user.click(await screen.findByText(/0102 — Banco de Venezuela/));
+  await user.type(screen.getByLabelText(/clave de pago/i), '123456');
+  await user.click(screen.getByRole('button', { name: /pagar/i }));
 }
 
 describe('BookingWizard', () => {
@@ -62,5 +68,25 @@ describe('BookingWizard', () => {
     // freshly rendered wizard starts at step 1
     render(<BookingWizard prices={prices} initialAvailability={{}} />);
     expect(screen.getByText(/paso 1 de 2/i)).toBeInTheDocument();
+  });
+
+  it('shows the ticket-style confirmation with QR and WhatsApp link after a successful payment', async () => {
+    vi.mocked(submitBookingAndPay).mockResolvedValue({
+      ok: true,
+      reservation: {
+        id: '6f9619ff-8b86-d011-b42d-00c04fc964ff',
+        code: 'ABC123',
+        totalUsd: 15,
+        totalVes: 547.5,
+        bcvRate: 36.5,
+      },
+    });
+    render(<BookingWizard prices={prices} initialAvailability={{}} />);
+    await fillDetailsAndContinue();
+    await fillPaymentAndPay();
+
+    expect(await screen.findByTestId('reservation-code')).toHaveTextContent('ABC123');
+    expect(screen.getByAltText(/código qr/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /whatsapp/i })).toBeInTheDocument();
   });
 });
