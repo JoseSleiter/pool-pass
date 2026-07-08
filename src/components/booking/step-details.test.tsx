@@ -28,10 +28,18 @@ describe('StepDetails', () => {
     expect(screen.getByTestId('total-usd')).toHaveTextContent('$35.00');
   });
 
-  it('does not allow adults below 1', async () => {
+  it('allows decreasing adults to 0', async () => {
     setup();
     await userEvent.click(screen.getByRole('button', { name: /disminuir adultos/i }));
-    expect(screen.getByTestId('adults-count')).toHaveTextContent('1');
+    expect(screen.getByTestId('adults-count')).toHaveTextContent('0');
+    await userEvent.click(screen.getByRole('button', { name: /disminuir adultos/i }));
+    expect(screen.getByTestId('adults-count')).toHaveTextContent('0'); // floor is 0
+  });
+
+  it('disables Continuar when nobody is attending', async () => {
+    setup();
+    await userEvent.click(screen.getByRole('button', { name: /disminuir adultos/i }));
+    expect(screen.getByRole('button', { name: /continuar/i })).toBeDisabled();
   });
 
   it('blocks continuing when the selected date is sold out', async () => {

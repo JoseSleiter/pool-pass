@@ -73,7 +73,7 @@ export function StepDetails(props: {
       <Card>
         <CardContent className="divide-y pt-2">
           <Stepper
-            label="Adultos" priceUsd={props.prices.adult} value={data.adults} min={1}
+            label="Adultos" priceUsd={props.prices.adult} value={data.adults} min={0}
             onChange={(v) => setData({ ...data, adults: v })} testId="adults-count"
           />
           <Stepper
@@ -111,7 +111,7 @@ export function StepDetails(props: {
         <span data-testid="total-usd" className="text-2xl font-bold">${usd.toFixed(2)}</span>
       </div>
 
-      <Button type="button" className="h-12 w-full text-base" onClick={submit}>
+      <Button type="button" className="h-12 w-full text-base" disabled={data.adults + data.children === 0} onClick={submit}>
         Continuar
       </Button>
     </div>
