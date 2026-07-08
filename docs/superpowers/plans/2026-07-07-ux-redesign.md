@@ -58,7 +58,7 @@ Replace the entire `:root { ... }` block (lines 51–84) with:
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #0ea5e9;
+  --primary: #0284c7; /* sky-600: white text on brighter #0ea5e9 fails WCAG (2.77:1) */
   --primary-foreground: #ffffff;
   --secondary: #e0f2fe;
   --secondary-foreground: #0369a1;
@@ -564,7 +564,7 @@ export function SiteHeader() {
         <nav className="flex items-center gap-4 text-sm text-slate-500">
           <a href="#precios" className="hidden sm:inline hover:text-sky-600">Precios</a>
           <a href="#galeria" className="hidden sm:inline hover:text-sky-600">Galería</a>
-          <Link href="/reservar" className="rounded-full bg-sky-500 px-4 py-1.5 font-semibold text-white hover:bg-sky-600">
+          <Link href="/reservar" className="rounded-full bg-sky-600 px-4 py-1.5 font-semibold text-white hover:bg-sky-700">
             Reservar
           </Link>
         </nav>

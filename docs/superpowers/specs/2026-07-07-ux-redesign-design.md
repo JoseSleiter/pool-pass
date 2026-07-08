@@ -26,7 +26,7 @@ The current site is functional but visually poor. This redesign gives the custom
 
 Defined in `src/app/globals.css` (Tailwind v4 `@theme` / shadcn CSS variables). No new libraries.
 
-- **Primary:** sky — `#0ea5e9`, hover `#0284c7`, light bg `#f0f9ff` / `#e0f2fe`.
+- **Primary:** sky — `#0284c7` (sky-600) for button/CTA fills so white text keeps ≥3:1 contrast (bright `#0ea5e9` failed WCAG at 2.77:1); `#0ea5e9` remains for accents, progress bars and gradients; hover `#0369a1`; light bg `#f0f9ff` / `#e0f2fe`.
 - **Surfaces:** page bg `#f8fafc`, cards white with `border-slate-200`, text `#0f172a`, muted `#64748b`.
 - **Dark accent (sidebar/footer):** `#0c4a6e`, with `#bae6fd` / `#7dd3fc` for secondary text on it; active nav item `#0369a1`.
 - **Status colors:** green `#dcfce7`/`#166534` (confirmed / checked-in), amber `#fef3c7`/`#92400e` (pending verification), red (failed / sold out).
