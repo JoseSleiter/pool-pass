@@ -20,6 +20,11 @@ Tests: `npm test` (unit) · `npm run test:integration` (needs local Supabase) ·
 
 Admin: create users manually in Supabase Studio (Authentication → Add user, Auto Confirm). No self-signup.
 
+## Personalización del landing
+
+- Textos del landing (nombre del club, amenidades, dirección, horario, WhatsApp, Instagram): edita `src/lib/landing-content.ts`.
+- Fotos de la galería: coloca hasta 6 imágenes (`.jpg/.png/.webp/.avif`) en `public/gallery/`; sin fotos se muestran placeholders degradados.
+
 ## Deploy checklist
 
 1. **Supabase cloud**: create the project; `npx supabase link` + `npx supabase db push` to apply migrations; create admin user(s) in Authentication.
