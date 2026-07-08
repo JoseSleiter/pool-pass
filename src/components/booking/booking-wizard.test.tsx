@@ -14,8 +14,9 @@ import { submitBookingAndPay } from '@/app/actions/booking';
 
 const prices = { adult: 15, child: 5 };
 
-// Radix's Select popper renders its item mid-position (opacity/pointer-events
-// still settling) for a tick in jsdom, which has no real layout pass. Disable
+// base-ui's Select positioner sets inline pointer-events:none while inert
+// during open/close transitions, which never settles in jsdom (no real layout
+// pass). Disable
 // user-event's pointer-events guard so clicks on those items aren't flagged
 // as "not clickable" — the click itself is still a real, valid interaction.
 const user = userEvent.setup({ pointerEventsCheck: 0 });
