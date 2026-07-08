@@ -1,5 +1,4 @@
-import Link from 'next/link';
-import { adminListReservations, adminGetDaySummary } from './actions';
+import { adminListReservations, adminGetDaySummary } from '../actions';
 import { AdminDayView } from '@/components/admin/day-view';
 import { todayCaracas } from '@/lib/dates';
 
@@ -19,10 +18,7 @@ export default async function AdminHome({
 
   return (
     <main className="mx-auto max-w-2xl space-y-4 p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Reservas</h1>
-        <Link href="/admin/settings" className="text-sm underline">Configuración</Link>
-      </div>
+      <h1 className="text-xl font-bold">Reservas</h1>
       <AdminDayView date={date} rows={rows} summary={summary} />
     </main>
   );
