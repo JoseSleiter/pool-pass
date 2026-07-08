@@ -1,21 +1,25 @@
-import { BookingWizard } from '@/components/booking/booking-wizard';
-import { getPublicPrices, getAvailability } from '@/app/actions/booking';
-import { todayCaracas } from '@/lib/dates';
+import { getPublicPrices, getTodayRemaining } from '@/app/actions/booking';
+import { SiteHeader } from '@/components/landing/site-header';
+import { Hero } from '@/components/landing/hero';
+import { HowItWorks, Amenities, Pricing, Gallery, RepeatCta } from '@/components/landing/sections';
+import { SiteFooter } from '@/components/landing/site-footer';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  // Anchor "current month" to Venezuela's clock, not the server's (UTC rolls over ~4h early).
-  const month = todayCaracas().slice(0, 7);
-  const [prices, availability] = await Promise.all([
-    getPublicPrices(),
-    getAvailability(month),
-  ]);
+  const [prices, remaining] = await Promise.all([getPublicPrices(), getTodayRemaining()]);
   return (
-    <main className="mx-auto max-w-md p-4">
-      <h1 className="mb-1 text-2xl font-bold">Reserva tu pase de piscina</h1>
-      <p className="mb-4 text-muted-foreground">Elige la fecha y cuántos asisten.</p>
-      <BookingWizard prices={prices} initialAvailability={availability} />
-    </main>
+    <>
+      <SiteHeader />
+      <main>
+        <Hero remaining={remaining} prices={prices} />
+        <HowItWorks />
+        <Amenities />
+        <Pricing prices={prices} />
+        <Gallery />
+        <RepeatCta />
+      </main>
+      <SiteFooter />
+    </>
   );
 }

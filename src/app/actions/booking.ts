@@ -8,6 +8,7 @@ import {
   getSettings, readRateCache, writeRateCache, monthAvailability,
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
+import { todayCaracas } from '@/lib/dates';
 
 export async function submitBookingAndPay(raw: unknown): Promise<BookingResult> {
   return processBooking(raw, {
@@ -47,4 +48,13 @@ export async function getAvailability(month: string): Promise<Record<string, num
 export async function getPublicPrices(): Promise<{ adult: number; child: number }> {
   const s = await getSettings();
   return { adult: Number(s.adult_price_usd), child: Number(s.child_price_usd) };
+}
+
+/** Remaining slots for today (Caracas). Absent key in monthAvailability = default capacity free. */
+export async function getTodayRemaining(): Promise<number> {
+  const today = todayCaracas();
+  const avail = await monthAvailability(today.slice(0, 7));
+  if (avail[today] !== undefined) return avail[today];
+  const s = await getSettings();
+  return s.daily_capacity;
 }
