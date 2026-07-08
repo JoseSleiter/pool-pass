@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { format, addDays } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { ReservationsTable } from './reservations-table';
 import { adminCheckIn, adminResendVoucher, type DaySummary } from '@/app/admin/actions';
@@ -28,7 +27,11 @@ export function AdminDayView(props: {
   const [notice, setNotice] = useState<string | null>(null);
   const s = props.summary;
   const go = (d: string) => { setNotice(null); router.push(`/admin?date=${d}`); };
-  const shift = (days: number) => go(format(addDays(new Date(`${props.date}T12:00:00-04:00`), days), 'yyyy-MM-dd'));
+  const shift = (days: number) => {
+    const d = new Date(`${props.date}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + days);
+    go(d.toISOString().slice(0, 10));
+  };
   const pct = s.capacity > 0 ? Math.min(100, Math.round((s.confirmedPeople / s.capacity) * 100)) : 0;
 
   return (
