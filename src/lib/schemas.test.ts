@@ -23,8 +23,11 @@ describe('bookingSchema', () => {
   it('accepts a valid booking', () => {
     expect(bookingSchema.safeParse(validBooking).success).toBe(true);
   });
-  it('requires at least 1 adult', () => {
-    expect(bookingSchema.safeParse({ ...validBooking, adults: 0 }).success).toBe(false);
+  it('accepts a child-only booking (0 adults, 1+ children)', () => {
+    expect(bookingSchema.safeParse({ ...validBooking, adults: 0, children: 2 }).success).toBe(true);
+  });
+  it('rejects a booking with nobody attending', () => {
+    expect(bookingSchema.safeParse({ ...validBooking, adults: 0, children: 0 }).success).toBe(false);
   });
   it('rejects malformed dates', () => {
     expect(bookingSchema.safeParse({ ...validBooking, date: '15/01/2030' }).success).toBe(false);
@@ -49,5 +52,8 @@ describe('paymentSchema', () => {
   });
   it('rejects non-numeric ID numbers', () => {
     expect(paymentSchema.safeParse({ ...validPayment, idNumber: '12A45' }).success).toBe(false);
+  });
+  it('paymentSchema also rejects a booking with nobody attending', () => {
+    expect(paymentSchema.safeParse({ ...validPayment, adults: 0, children: 0 }).success).toBe(false);
   });
 });

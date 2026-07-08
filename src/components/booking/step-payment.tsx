@@ -12,8 +12,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 
-const payFieldsSchema = paymentSchema.pick({
-  idType: true, idNumber: true, phone: true, bankCode: true, otp: true,
+// Manually define payment fields schema (can't .pick() from refined schema)
+const payFieldsSchema = z.object({
+  idType: z.enum(['V', 'E', 'P', 'J']),
+  idNumber: z.string().regex(/^\d{5,10}$/, 'Solo dígitos (5–10)'),
+  phone: z.string().regex(/^04(12|14|16|22|24|26)\d{7}$/, 'Teléfono venezolano inválido (04XX...)'),
+  bankCode: z.string().regex(/^\d{4}$/, 'Banco requerido'),
+  otp: z.string().min(4, 'Clave requerida').max(12),
 });
 export type PayFields = z.infer<typeof payFieldsSchema>;
 
