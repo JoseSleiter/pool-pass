@@ -19,8 +19,8 @@ export const bookingSchema = bookingBase.refine(hasAttendee.check, hasAttendee.o
 // Venezuelan mobile: 0412/0414/0416/0422/0424/0426 + 7 digits
 const VE_PHONE = /^04(12|14|16|22|24|26)\d{7}$/;
 
-// Unrefined base for .pick() compatibility in components
-const paymentBaseUnrefined = bookingBase.extend({
+// Unrefined field definitions — exported so forms can .pick() individual fields
+export const paymentFields = bookingBase.extend({
   idType: z.enum(['V', 'E', 'P', 'J']),
   idNumber: z.string().regex(/^\d{5,10}$/, 'Solo dígitos (5–10)'),
   phone: z.string().regex(VE_PHONE, 'Teléfono venezolano inválido (04XX...)'),
@@ -28,7 +28,7 @@ const paymentBaseUnrefined = bookingBase.extend({
   otp: z.string().min(4, 'Clave requerida').max(12),
 });
 
-export const paymentSchema = paymentBaseUnrefined.refine(hasAttendee.check, hasAttendee.opts);
+export const paymentSchema = paymentFields.refine(hasAttendee.check, hasAttendee.opts);
 
 export type BookingInput = z.infer<typeof bookingSchema>;
 export type PaymentInput = z.infer<typeof paymentSchema>;
