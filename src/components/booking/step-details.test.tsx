@@ -42,6 +42,18 @@ describe('StepDetails', () => {
     expect(screen.getByRole('button', { name: /continuar/i })).toBeDisabled();
   });
 
+  it('allows a child-only party to continue', async () => {
+    const { onNext } = setup();
+    await userEvent.click(screen.getByRole('button', { name: /disminuir adultos/i }));
+    await userEvent.click(screen.getByRole('button', { name: /aumentar niños/i }));
+    expect(screen.getByRole('button', { name: /continuar/i })).not.toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/nombre/i), 'Ana');
+    await userEvent.type(screen.getByLabelText(/apellido/i), 'Pérez');
+    await userEvent.type(screen.getByLabelText(/correo/i), 'ana@example.com');
+    await userEvent.click(screen.getByRole('button', { name: /continuar/i }));
+    expect(onNext).toHaveBeenCalledWith(expect.objectContaining({ adults: 0, children: 1 }));
+  });
+
   it('blocks continuing when the selected date is sold out', async () => {
     const onNext = vi.fn();
     render(
