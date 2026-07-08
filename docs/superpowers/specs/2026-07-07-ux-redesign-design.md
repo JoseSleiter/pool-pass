@@ -76,7 +76,7 @@ Users may book passes for children only (e.g., 4 niños, 0 adultos).
 
 **Layout — classic sidebar (option B),** applied via a shared `src/app/admin/layout.tsx` shell around existing pages:
 
-- **Sidebar** (desktop, `#0c4a6e`): logo + "Panel de administración"; nav **Hoy** (`/admin`), **Reservas** (same page — nav item highlights; no separate route needed), **Configuración** (`/admin/settings`); bottom: logged-in email + "Cerrar sesión" (new visible logout — calls existing Supabase sign-out).
+- **Sidebar** (desktop, `#0c4a6e`): logo + "Panel de administración"; nav **Hoy** (`/admin`) and **Configuración** (`/admin/settings`) — the day view *is* the reservations list, so no separate "Reservas" item/route; bottom: logged-in email + "Cerrar sesión" (new visible logout — calls existing Supabase sign-out).
 - **Mobile:** sidebar collapses to a dark top bar with ☰ menu (client component, simple slide-over).
 
 **"Hoy" page (`/admin`)** restyled:
