@@ -88,6 +88,7 @@ export function BookingWizard(props: {
           onSubmit={handlePay}
           submitting={submitting}
           error={error}
+          onEdit={() => { setError(null); setStep('details'); }}
         />
       </>
     );

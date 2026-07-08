@@ -11,13 +11,13 @@ const booking = {
 
 describe('StepPayment', () => {
   it('shows the USD total for the booking', () => {
-    render(<StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error={null} />);
+    render(<StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error={null} onEdit={vi.fn()} />);
     expect(screen.getByTestId('pay-total-usd')).toHaveTextContent('$35.00');
   });
 
   it('blocks submission with an invalid phone and shows the message', async () => {
     const onSubmit = vi.fn();
-    render(<StepPayment booking={booking} totalUsd={35} onSubmit={onSubmit} submitting={false} error={null} />);
+    render(<StepPayment booking={booking} totalUsd={35} onSubmit={onSubmit} submitting={false} error={null} onEdit={vi.fn()} />);
     await userEvent.type(screen.getByLabelText(/número de documento/i), '12345678');
     await userEvent.type(screen.getByLabelText(/teléfono/i), '123');
     await userEvent.type(screen.getByLabelText(/clave de pago/i), '123456');
@@ -27,19 +27,19 @@ describe('StepPayment', () => {
   });
 
   it('renders a server error when given', () => {
-    render(<StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error="Clave inválida" />);
+    render(<StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error="Clave inválida" onEdit={vi.fn()} />);
     expect(screen.getByText('Clave inválida')).toBeInTheDocument();
   });
 
   it('disables the pay button while submitting (double-submit guard)', () => {
-    render(<StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={true} error={null} />);
+    render(<StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={true} error={null} onEdit={vi.fn()} />);
     expect(screen.getByRole('button', { name: /procesando/i })).toBeDisabled();
   });
 
   it('shows the estimated VES total and BCV rate when vesInfo is given', () => {
     render(
       <StepPayment booking={booking} totalUsd={35} vesInfo={{ rate: 36.5, totalVes: 1277.5 }}
-        onSubmit={vi.fn()} submitting={false} error={null} />
+        onSubmit={vi.fn()} submitting={false} error={null} onEdit={vi.fn()} />
     );
     expect(screen.getByText(/Bs\. 1277\.50/)).toBeInTheDocument();
     expect(screen.getByText(/tasa BCV 36\.50/)).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe('StepPayment', () => {
 
   it('clears stale field errors once a corrected form submits successfully', async () => {
     const onSubmit = vi.fn();
-    render(<StepPayment booking={booking} totalUsd={35} onSubmit={onSubmit} submitting={false} error={null} />);
+    render(<StepPayment booking={booking} totalUsd={35} onSubmit={onSubmit} submitting={false} error={null} onEdit={vi.fn()} />);
     await userEvent.type(screen.getByLabelText(/número de documento/i), '12345678');
     await userEvent.type(screen.getByLabelText(/teléfono/i), '123');
     await userEvent.type(screen.getByLabelText(/clave de pago/i), '123456');
@@ -66,14 +66,27 @@ describe('StepPayment', () => {
 
   it('clears the entered OTP when a server error arrives (declined charge)', async () => {
     const { rerender } = render(
-      <StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error={null} />
+      <StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error={null} onEdit={vi.fn()} />
     );
     const otp = screen.getByLabelText(/clave de pago/i);
     await userEvent.type(otp, '123456');
     expect(otp).toHaveValue('123456');
     rerender(
-      <StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error="Clave inválida" />
+      <StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error="Clave inválida" onEdit={vi.fn()} />
     );
     expect(screen.getByLabelText(/clave de pago/i)).toHaveValue('');
+  });
+
+  it('shows the amount on the pay button', () => {
+    render(<StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error={null} onEdit={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /pagar \$35\.00/i })).toBeInTheDocument();
+  });
+
+  it('editar returns to the details step', async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn();
+    render(<StepPayment booking={booking} totalUsd={35} onSubmit={vi.fn()} submitting={false} error={null} onEdit={onEdit} />);
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+    expect(onEdit).toHaveBeenCalled();
   });
 });

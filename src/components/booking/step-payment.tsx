@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { paymentFields, type BookingInput } from '@/lib/schemas';
 import { VENEZUELAN_BANKS } from '@/lib/banks';
+import { partyLabel } from '@/lib/party';
+import { shortDateEs } from '@/lib/dates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +26,7 @@ export function StepPayment(props: {
   onSubmit: (fields: PayFields) => void;
   submitting: boolean;
   error: string | null;
+  onEdit: () => void;
 }) {
   const [fields, setFields] = useState<PayFields>({
     idType: 'V', idNumber: '', phone: '', bankCode: '', otp: '',
@@ -53,18 +56,19 @@ export function StepPayment(props: {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg bg-muted p-4">
-        <div className="flex justify-between">
-          <span className="text-sm text-muted-foreground">Total a pagar</span>
-          <span data-testid="pay-total-usd" className="text-xl font-bold">
-            ${props.totalUsd.toFixed(2)}
-          </span>
+      <div className="rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 p-4 text-white">
+        <div className="flex items-center justify-between text-xs text-sky-100">
+          <span>{shortDateEs(props.booking.date)} · {partyLabel(props.booking.adults, props.booking.children)}</span>
+          <button type="button" onClick={props.onEdit} className="underline underline-offset-2">editar</button>
         </div>
-        {props.vesInfo && (
-          <p className="mt-1 text-right text-sm text-muted-foreground">
-            Bs. {props.vesInfo.totalVes.toFixed(2)} (tasa BCV {props.vesInfo.rate.toFixed(2)})
-          </p>
-        )}
+        <div className="mt-2 flex items-baseline justify-between">
+          <span data-testid="pay-total-usd" className="text-2xl font-extrabold">${props.totalUsd.toFixed(2)}</span>
+          {props.vesInfo && (
+            <span className="text-sm text-sky-100">
+              Bs. {props.vesInfo.totalVes.toFixed(2)} (tasa BCV {props.vesInfo.rate.toFixed(2)})
+            </span>
+          )}
+        </div>
       </div>
 
       <Card>
@@ -130,8 +134,8 @@ export function StepPayment(props: {
         </p>
       )}
 
-      <Button type="button" className="h-12 w-full text-base" disabled={props.submitting} onClick={submit}>
-        {props.submitting ? 'Procesando…' : 'Pagar'}
+      <Button type="button" className="h-12 w-full rounded-full text-base font-bold" disabled={props.submitting} onClick={submit}>
+        {props.submitting ? 'Procesando…' : `Pagar $${props.totalUsd.toFixed(2)}`}
       </Button>
     </div>
   );
