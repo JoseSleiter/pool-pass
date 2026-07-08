@@ -7,7 +7,11 @@ export function Hero(props: { remaining: number; prices: { adult: number; child:
     <section className="bg-gradient-to-br from-sky-300 via-sky-400 to-sky-600 px-5 pb-14 pt-10 text-white">
       <div className="mx-auto max-w-3xl">
         <span className="inline-block rounded-full bg-white/25 px-3 py-1 text-xs font-medium">
-          {open ? `☀️ Abierto hoy · quedan ${props.remaining} cupos` : '⛱️ Agotado hoy — reserva otro día'}
+          {open
+            ? props.remaining === 1
+              ? '☀️ Abierto hoy · queda 1 cupo'
+              : `☀️ Abierto hoy · quedan ${props.remaining} cupos`
+            : '⛱️ Agotado hoy — reserva otro día'}
         </span>
         <h1 className="mt-4 max-w-md text-4xl font-extrabold leading-tight sm:text-5xl">
           {landingContent.tagline}

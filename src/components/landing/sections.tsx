@@ -42,7 +42,7 @@ export function Pricing(props: { prices: { adult: number; child: number } }) {
   return (
     <section id="precios" className="px-5 pb-10">
       <div className="mx-auto max-w-3xl">
-        <p className="text-xs font-bold uppercase tracking-widest text-sky-500">Precios</p>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-sky-500">Precios</h2>
         <div className="mt-4 flex gap-4">
           <div className="flex-1 rounded-2xl border-2 border-sky-500 bg-sky-50 p-5 text-center">
             <p className="text-xs font-bold uppercase text-sky-700">Adultos</p>
@@ -84,7 +84,7 @@ export function Gallery() {
   return (
     <section id="galeria" className="px-5 pb-10">
       <div className="mx-auto max-w-3xl">
-        <p className="text-xs font-bold uppercase tracking-widest text-sky-500">Galería</p>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-sky-500">Galería</h2>
         <div className="mt-4 grid grid-cols-[2fr_1fr] gap-2">
           {images.length > 0
             ? images.map((src, i) => (
