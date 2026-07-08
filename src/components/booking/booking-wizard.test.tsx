@@ -57,4 +57,10 @@ describe('BookingWizard', () => {
     expect(await screen.findByText(/Bs\. 547\.50/)).toBeInTheDocument();
     expect(screen.getByText(/tasa BCV 36\.50/)).toBeInTheDocument();
   });
+
+  it('shows the step progress label', () => {
+    // freshly rendered wizard starts at step 1
+    render(<BookingWizard prices={prices} initialAvailability={{}} />);
+    expect(screen.getByText(/paso 1 de 2/i)).toBeInTheDocument();
+  });
 });

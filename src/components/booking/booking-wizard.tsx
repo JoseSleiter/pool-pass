@@ -65,11 +65,11 @@ export function BookingWizard(props: {
   }
   if (step === 'pending') {
     return (
-      <div className="space-y-4 text-center">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
         <div className="text-5xl">⏳</div>
-        <h2 className="text-xl font-bold">Pago en verificación</h2>
-        {pendingMessage && <p className="text-muted-foreground">{pendingMessage}</p>}
-        <p className="text-muted-foreground">
+        <h2 className="mt-2 text-xl font-extrabold text-amber-900">Pago en verificación</h2>
+        {pendingMessage && <p className="mt-2 text-amber-800">{pendingMessage}</p>}
+        <p className="mt-2 text-amber-800">
           Te contactaremos con la confirmación. No intentes pagar de nuevo.
         </p>
       </div>
@@ -78,19 +78,23 @@ export function BookingWizard(props: {
   if (step === 'payment') {
     const usd = totalUsd(booking.adults, booking.children, props.prices);
     return (
-      <StepPayment
-        booking={booking}
-        totalUsd={usd}
-        // Estimate for display only; the authoritative rate is re-fetched server-side at charge time.
-        vesInfo={rate !== null ? { rate, totalVes: usdToVes(usd, rate) } : null}
-        onSubmit={handlePay}
-        submitting={submitting}
-        error={error}
-      />
+      <>
+        <Progress step={2} />
+        <StepPayment
+          booking={booking}
+          totalUsd={usd}
+          // Estimate for display only; the authoritative rate is re-fetched server-side at charge time.
+          vesInfo={rate !== null ? { rate, totalVes: usdToVes(usd, rate) } : null}
+          onSubmit={handlePay}
+          submitting={submitting}
+          error={error}
+        />
+      </>
     );
   }
   return (
     <>
+      <Progress step={1} />
       {error && <p role="alert" className="mb-3 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
       <StepDetails
         prices={props.prices}
@@ -106,5 +110,18 @@ export function BookingWizard(props: {
         }}
       />
     </>
+  );
+}
+
+function Progress(props: { step: 1 | 2 }) {
+  const label = props.step === 1 ? 'Paso 1 de 2 · Fecha y asistentes' : 'Paso 2 de 2 · Pago Móvil C2P';
+  return (
+    <div className="mb-4">
+      <div className="flex gap-1.5" aria-hidden>
+        <div className="h-1 flex-1 rounded-full bg-sky-500" />
+        <div className={`h-1 flex-1 rounded-full ${props.step === 2 ? 'bg-sky-500' : 'bg-slate-200'}`} />
+      </div>
+      <p className="mt-1.5 text-xs text-muted-foreground">{label}</p>
+    </div>
   );
 }
