@@ -30,6 +30,12 @@ async function goToDate(page: Page, date: string) {
   await cell.click();
 }
 
+async function openBooking(page: Page) {
+  await page.goto('/');
+  await page.getByRole('link', { name: /reservar ahora/i }).click();
+  await expect(page).toHaveURL(/\/reservar$/);
+}
+
 async function fillBookingStep(page: Page, date: string) {
   await goToDate(page, date);
   await page.getByRole('button', { name: /aumentar adultos/i }).click(); // 2 adults
@@ -63,7 +69,7 @@ test.describe('booking flow', () => {
 
   test('happy path: books, pays (mock), sees confirmation with code', async ({ page }) => {
     const DATE = targetDate(21);
-    await page.goto('/reservar');
+    await openBooking(page);
     await fillBookingStep(page, DATE);
     await fillPaymentStep(page, '123456');
     await expect(page.getByText(/reserva confirmada/i)).toBeVisible({ timeout: 20_000 });
@@ -77,7 +83,7 @@ test.describe('booking flow', () => {
 
   test('declined payment: shows error, reservation released', async ({ page }) => {
     const DATE = targetDate(22);
-    await page.goto('/reservar');
+    await openBooking(page);
     await fillBookingStep(page, DATE);
     await fillPaymentStep(page, '999999'); // mock decline
     await expect(page.getByText(/pago rechazado/i)).toBeVisible({ timeout: 20_000 });
@@ -90,7 +96,7 @@ test.describe('booking flow', () => {
   test('sold out: capacity error reports remaining slots', async ({ page }) => {
     const DATE = targetDate(23);
     await supabase.from('capacity_overrides').insert({ date: DATE, capacity: 1 });
-    await page.goto('/reservar');
+    await openBooking(page);
     await fillBookingStep(page, DATE); // requests 2 adults > capacity 1
     await fillPaymentStep(page, '123456');
     await expect(page.getByText(/no hay cupo suficiente/i)).toBeVisible({ timeout: 20_000 });
