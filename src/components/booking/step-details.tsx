@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Stepper } from './stepper';
 import { bookingSchema, type BookingInput } from '@/lib/schemas';
 import { totalUsd } from '@/lib/money';
+import { partyLabel } from '@/lib/party';
 
 export function StepDetails(props: {
   prices: { adult: number; child: number };
@@ -106,13 +107,13 @@ export function StepDetails(props: {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between rounded-lg bg-muted p-4">
-        <span className="text-sm text-muted-foreground">Total</span>
-        <span data-testid="total-usd" className="text-2xl font-bold">${usd.toFixed(2)}</span>
+      <div className="flex items-center justify-between rounded-2xl bg-sky-50 p-4">
+        <span className="text-sm text-sky-800">{partyLabel(data.adults, data.children) || 'Elige asistentes'}</span>
+        <span data-testid="total-usd" className="text-2xl font-extrabold">${usd.toFixed(2)}</span>
       </div>
 
-      <Button type="button" className="h-12 w-full text-base" disabled={data.adults + data.children === 0} onClick={submit}>
-        Continuar
+      <Button type="button" className="h-12 w-full rounded-full text-base font-bold shadow-lg shadow-sky-500/25" disabled={data.adults + data.children === 0} onClick={submit}>
+        Continuar →
       </Button>
     </div>
   );
