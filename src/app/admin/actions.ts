@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { ssrClient } from '@/lib/db/ssr-client';
+import { isAdminEmail } from '@/lib/auth/admin';
 import {
   listReservationsByDate, getReservation, checkInReservation,
   getSettings, updateSettings, listOverrides, upsertOverride, deleteOverride,
@@ -10,11 +11,14 @@ import {
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
 
-/** SECURITY: middleware only guards pages — every admin action MUST call this first. */
+/**
+ * SECURITY: middleware only guards pages — every admin action MUST call this first.
+ * A valid session is not enough: the user's email must be on the ADMIN_EMAILS allowlist.
+ */
 async function requireAdmin(): Promise<void> {
   const supabase = await ssrClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
+  if (!user || !isAdminEmail(user.email)) throw new Error('Unauthorized');
 }
 
 export interface DaySummary {

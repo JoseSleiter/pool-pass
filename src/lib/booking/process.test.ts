@@ -35,6 +35,20 @@ describe('processBooking', () => {
     expect(d.sendVoucher).toHaveBeenCalled();
   });
 
+  it('honeypot: rejects when the hidden field is filled, without touching any dependency', async () => {
+    const d = deps();
+    const res = await processBooking({ ...input, website: 'http://spam.example' }, d);
+    expect(res).toMatchObject({ ok: false, error: 'validation' });
+    expect(d.getPrices).not.toHaveBeenCalled();
+    expect(d.reserve).not.toHaveBeenCalled();
+  });
+
+  it('honeypot: an empty hidden field passes through normally', async () => {
+    const d = deps();
+    const res = await processBooking({ ...input, website: '' }, d);
+    expect(res).toMatchObject({ ok: true });
+  });
+
   it('rejects invalid input without touching any dependency', async () => {
     const d = deps();
     const res = await processBooking({ ...input, phone: 'bad' }, d);

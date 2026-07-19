@@ -1,3 +1,4 @@
+import 'server-only';
 import { Resend } from 'resend';
 import { render } from '@react-email/components';
 import { VoucherEmail } from './voucher-template';

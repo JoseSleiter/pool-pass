@@ -18,7 +18,7 @@ npm run dev
 
 Tests: `npm test` (unit) · `npm run test:integration` (needs local Supabase) · `npm run test:e2e` (Playwright; needs local Supabase, uses MERCANTIL_MOCK=1)
 
-Admin: create users manually in Supabase Studio (Authentication → Add user, Auto Confirm). No self-signup.
+Admin: create users manually in Supabase Studio (Authentication → Add user, Auto Confirm). No self-signup. A logged-in user is **not** an admin unless their email is in `ADMIN_EMAILS` (see `.env.example`) — this gates both the `/admin` pages and every admin server action.
 
 ## Personalización del landing
 
@@ -27,8 +27,10 @@ Admin: create users manually in Supabase Studio (Authentication → Add user, Au
 
 ## Deploy checklist
 
-1. **Supabase cloud**: create the project; `npx supabase link` + `npx supabase db push` to apply migrations; create admin user(s) in Authentication.
-2. **Vercel**: set every var from `.env.example` with production values; `MERCANTIL_MOCK=0`; `NEXT_PUBLIC_APP_URL=https://<your-domain>`.
+> Full step-by-step (incl. security lockdown and the C2P mock→real switch): **[docs/deploy-vercel.md](docs/deploy-vercel.md)**.
+
+1. **Supabase cloud**: create the project; `npx supabase link` + `npx supabase db push` to apply migrations (incl. `0003` RLS lockdown + rate limiter); create admin user(s) in Authentication; **disable public signup**.
+2. **Vercel**: set every var from `.env.example` with production values (incl. `ADMIN_EMAILS`); `NEXT_PUBLIC_APP_URL=https://<your-domain>`. Set `MERCANTIL_MOCK=1` while running C2P in test mode; switch to `0` only after confirming the Mercantil contract (see the deploy doc).
 3. **Resend**: verify the sending domain for `VOUCHER_FROM_EMAIL`.
 4. **Verify the Mercantil wire contract against the integration doc for your merchant account** — these were implemented from public samples and MUST be confirmed before any real charge:
    - Cipher convention in `src/lib/mercantil/encrypt.ts` (AES-256-CBC, key = SHA-256(secret), zero IV, base64).

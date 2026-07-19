@@ -30,16 +30,104 @@ export async function getBcvRate(deps: RateDeps): Promise<number | null> {
   }
 }
 
-/** Production fetcher: dolarapi "oficial" mirror of the BCV rate. */
-export async function fetchBcvRateFromMirror(): Promise<number> {
-  const res = await fetch(process.env.BCV_RATE_URL!, {
-    cache: 'no-store',
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!res.ok) throw new Error(`BCV mirror HTTP ${res.status}`);
-  const body = (await res.json()) as { promedio: number };
-  if (typeof body.promedio !== 'number' || body.promedio <= 0) {
-    throw new Error('BCV mirror returned invalid rate');
+// ── BCV rate sources ────────────────────────────────────────────────────────
+// The official BCV rate (VES/USD) has no clean public JSON API, so we read it
+// from official-rate mirrors and fall back to scraping bcv.org.ve directly.
+// Sources are tried in order; the first valid, positive rate wins.
+
+const FETCH_TIMEOUT_MS = 8000;
+
+export function isValidRate(n: unknown): n is number {
+  return typeof n === 'number' && Number.isFinite(n) && n > 0;
+}
+
+export interface RateSource {
+  name: string;
+  fetch: () => Promise<number>;
+}
+
+/** Try each source in order; return the first valid rate. Throws if all fail. */
+export async function firstSuccessfulRate(sources: RateSource[]): Promise<number> {
+  const errors: string[] = [];
+  for (const source of sources) {
+    try {
+      const rate = await source.fetch();
+      if (isValidRate(rate)) return rate;
+      errors.push(`${source.name}: invalid rate (${rate})`);
+    } catch (e) {
+      errors.push(`${source.name}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
-  return body.promedio;
+  throw new Error(`all BCV sources failed — ${errors.join('; ')}`);
+}
+
+async function getJson(url: string): Promise<unknown> {
+  const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+/** Source 1: dolarapi "oficial" — the BCV rate as JSON `{ promedio }`. */
+export async function fetchFromDolarApi(): Promise<number> {
+  const url = process.env.BCV_RATE_URL || 'https://ve.dolarapi.com/v1/dolares/oficial';
+  const body = (await getJson(url)) as { promedio?: unknown };
+  const rate = Number(body.promedio);
+  if (!isValidRate(rate)) throw new Error('invalid `promedio` in response');
+  return rate;
+}
+
+/** Source 2: pydolarve BCV monitor — JSON `{ price }`. */
+export async function fetchFromPyDolarVe(): Promise<number> {
+  const url = process.env.BCV_PYDOLARVE_URL || 'https://pydolarve.org/api/v1/dollar?page=bcv&monitor=usd';
+  const body = (await getJson(url)) as { price?: unknown };
+  const rate = Number(body.price);
+  if (!isValidRate(rate)) throw new Error('invalid `price` in response');
+  return rate;
+}
+
+/** Extract the USD rate from the BCV site's `#dolar` block (VE number format). */
+export function parseBcvHtml(html: string): number {
+  const idx = html.search(/id=["']dolar["']/i);
+  if (idx === -1) throw new Error('#dolar block not found');
+  const block = html.slice(idx, idx + 800);
+  for (const m of block.matchAll(/<strong>([\s\S]*?)<\/strong>/gi)) {
+    const cleaned = m[1].replace(/[^\d.,]/g, '');
+    if (!/\d/.test(cleaned)) continue;
+    // VE format: '.' is the thousands separator, ',' the decimal separator.
+    const rate = Number(cleaned.replace(/\./g, '').replace(',', '.'));
+    if (isValidRate(rate)) return rate;
+  }
+  throw new Error('no numeric rate in #dolar block');
+}
+
+/**
+ * Source 3 (last resort): scrape www.bcv.org.ve directly. Its TLS certificate
+ * is frequently invalid, so we relax certificate checks for this one host via
+ * an undici dispatcher (never globally).
+ */
+export async function fetchFromBcvSite(): Promise<number> {
+  const url = process.env.BCV_SITE_URL || 'https://www.bcv.org.ve/';
+  const { Agent } = await import('undici');
+  const dispatcher = new Agent({ connect: { rejectUnauthorized: false } });
+  const res = await fetch(url, {
+    cache: 'no-store',
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    // @ts-expect-error — `dispatcher` is an undici extension to fetch options.
+    dispatcher,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return parseBcvHtml(await res.text());
+}
+
+export function bcvSources(): RateSource[] {
+  return [
+    { name: 'dolarapi', fetch: fetchFromDolarApi },
+    { name: 'pydolarve', fetch: fetchFromPyDolarVe },
+    { name: 'bcv.org.ve', fetch: fetchFromBcvSite },
+  ];
+}
+
+/** Production fetcher: official BCV rate with multi-source fallback. */
+export async function fetchBcvRate(): Promise<number> {
+  return firstSuccessfulRate(bcvSources());
 }

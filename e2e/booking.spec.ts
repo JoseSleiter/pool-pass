@@ -32,30 +32,29 @@ async function goToDate(page: Page, date: string) {
 
 async function openBooking(page: Page) {
   await page.goto('/');
-  await page.getByRole('link', { name: /reservar ahora/i }).click();
-  await expect(page).toHaveURL(/\/reservar$/);
+  // The hero "Continuar" opens /reservar directly in the payment view (pay=1).
+  await page.getByRole('link', { name: /continuar/i }).click();
+  await expect(page).toHaveURL(/\/reservar/);
 }
 
+// Single-card flow: the "Fecha de visita" tile reveals the inline calendar;
+// picking a date returns to the payment form. The default party is
+// 2 adultos · 1 niño, so specs that need >1 attendee don't touch the steppers.
 async function fillBookingStep(page: Page, date: string) {
+  await page.getByRole('button', { name: /fecha de visita/i }).click();
   await goToDate(page, date);
-  await page.getByRole('button', { name: /aumentar adultos/i }).click(); // 2 adults
-  await page.getByLabel(/^nombre$/i).fill('Ana');
-  await page.getByLabel(/apellido/i).fill('Pérez');
-  await page.getByLabel(/correo/i).fill('ana@example.com');
-  await page.getByRole('button', { name: /continuar/i }).click();
 }
 
 async function fillPaymentStep(page: Page, otp: string) {
+  await page.getByLabel(/^nombre$/i).fill('Ana');
+  await page.getByLabel(/apellido/i).fill('Pérez');
+  await page.getByLabel(/correo/i).fill('ana@example.com');
   await page.getByLabel(/número de documento/i).fill('12345678');
   await page.getByLabel(/teléfono/i).fill('04141234567');
-  // Bank select is a @base-ui/react combobox: its trigger is a <button id="bank">
-  // associated with the "Banco" <label for="bank">, so getByLabel resolves it
-  // fine in a real browser (unlike the jsdom unit tests, which poke #bank
-  // directly). Options render as role="option" in a portal.
-  await page.getByLabel(/^banco$/i).click();
-  await page.getByRole('option', { name: /banesco/i }).click();
+  // Bank is a native <select> labelled "Banco"; select Banesco (0134) by value.
+  await page.getByLabel(/^banco$/i).selectOption('0134');
   await page.getByLabel(/clave de pago/i).fill(otp);
-  await page.getByRole('button', { name: /pagar/i }).click();
+  await page.getByRole('button', { name: /confirmar y pagar/i }).click();
 }
 
 test.describe('booking flow', () => {

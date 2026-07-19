@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isAdminEmail } from '@/lib/auth/admin';
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -26,7 +27,9 @@ export async function middleware(request: NextRequest) {
   const isAdminPath = request.nextUrl.pathname.startsWith('/admin');
   const isLogin = request.nextUrl.pathname === '/admin/login';
 
-  if (isAdminPath && !isLogin && !user) {
+  // A session alone is not enough: pages that render customer PII require an
+  // allowlisted admin email, mirroring the server-action requireAdmin gate.
+  if (isAdminPath && !isLogin && !isAdminEmail(user?.email)) {
     const url = request.nextUrl.clone();
     url.pathname = '/admin/login';
     url.searchParams.set('next', request.nextUrl.pathname);

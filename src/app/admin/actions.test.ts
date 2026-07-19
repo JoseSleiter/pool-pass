@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-let mockUser: { id: string } | null = null;
+let mockUser: { id: string; email?: string } | null = null;
+
+const ADMIN_EMAIL = 'admin@club.com';
+process.env.ADMIN_EMAILS = ADMIN_EMAIL;
 
 vi.mock('@/lib/db/ssr-client', () => ({
   ssrClient: vi.fn(async () => ({
@@ -84,10 +87,29 @@ describe('admin actions auth gating (no user)', () => {
   });
 });
 
+describe('admin actions reject a logged-in NON-admin user', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = { id: 'user-9', email: 'intruder@evil.com' };
+  });
+
+  it('adminListReservations rejects a non-allowlisted email and never reads data', async () => {
+    await expect(adminListReservations('2030-01-15')).rejects.toThrow('Unauthorized');
+    expect(listReservationsByDate).not.toHaveBeenCalled();
+  });
+
+  it('adminUpdateSettings rejects a non-allowlisted email and never writes', async () => {
+    await expect(
+      adminUpdateSettings({ daily_capacity: 100, adult_price_usd: 10, child_price_usd: 5 })
+    ).rejects.toThrow('Unauthorized');
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+});
+
 describe('admin settings validation (authorized user)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUser = { id: 'admin-1' };
+    mockUser = { id: 'admin-1', email: ADMIN_EMAIL };
   });
 
   it('adminUpdateSettings rejects a non-integer daily_capacity without hitting the data layer', async () => {
@@ -122,7 +144,7 @@ describe('admin settings validation (authorized user)', () => {
 describe('adminGetDaySummary aggregates (authorized user)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUser = { id: 'admin-1' };
+    mockUser = { id: 'admin-1', email: ADMIN_EMAIL };
   });
 
   it('computes occupancy, revenue and pending counts from the day rows', async () => {

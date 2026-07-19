@@ -1,3 +1,4 @@
+import 'server-only';
 import { encryptField } from './encrypt';
 
 export interface C2pRequest {
