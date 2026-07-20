@@ -33,5 +33,12 @@ export function visitLabelEs(date: string): string {
     timeZone: 'America/Caracas',
     weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
   }).format(new Date(`${date}T12:00:00-04:00`));
-  return raw.replace(/\b\p{L}/gu, (c) => c.toUpperCase()).replace(/\./g, '');
+  // Capitalize the first letter of each space-delimited token. A \b\p{L} regex
+  // would misfire on accented weekdays (JS word boundaries are ASCII-based),
+  // producing "SÁB"/"MiÉ" instead of "Sáb"/"Mié".
+  return raw
+    .split(' ')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+    .replace(/\./g, '');
 }

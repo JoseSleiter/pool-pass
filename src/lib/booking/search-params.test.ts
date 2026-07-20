@@ -50,4 +50,15 @@ describe('parseBookingParams', () => {
     freezeToday('2026-07-20');
     expect(parseBookingParams({ adults: '2.5', children: 'x' })).toMatchObject({ adults: 2, children: 1 });
   });
+
+  it('falls back to today on a shape-valid but impossible date', () => {
+    freezeToday('2026-07-20');
+    expect(parseBookingParams({ date: '2026-13-45' }).date).toBe('2026-07-20');
+    expect(parseBookingParams({ date: '2026-02-30' }).date).toBe('2026-07-20');
+  });
+
+  it('falls back to defaults on empty-string counts', () => {
+    freezeToday('2026-07-20');
+    expect(parseBookingParams({ adults: '', children: '' })).toMatchObject({ adults: 2, children: 1 });
+  });
 });
