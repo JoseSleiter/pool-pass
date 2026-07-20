@@ -3,17 +3,15 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import {
   CalendarCheck,
   Users,
   ArrowRight,
   ShieldCheck,
   Lock,
-  Minus,
-  Plus,
 } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
+import { DatePickerPanel } from '@/components/booking/date-picker-panel';
+import { CountRow } from '@/components/booking/count-row';
 import {
   getAvailability,
   getCurrentRate,
@@ -21,7 +19,7 @@ import {
 } from '@/app/actions/booking';
 import { totalUsd, usdToVes } from '@/lib/money';
 import { partyLabel } from '@/lib/party';
-import { shortDateEs } from '@/lib/dates';
+import { shortDateEs, visitLabelEs } from '@/lib/dates';
 import { paymentSchema } from '@/lib/schemas';
 import { VENEZUELAN_BANKS } from '@/lib/banks';
 import { whatsappUrl } from '@/lib/landing-content';
@@ -35,29 +33,21 @@ function capitalize(s: string): string {
   return s.replace(/\b\p{L}/gu, (c) => c.toUpperCase());
 }
 
-function longVisitLabel(date: string): string {
-  const raw = new Intl.DateTimeFormat('es-VE', {
-    timeZone: 'America/Caracas',
-    weekday: 'short',
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(`${date}T12:00:00-04:00`));
-  return capitalize(raw).replace(/\./g, '');
-}
-
 export function BookingCard(props: {
   prices: { adult: number; child: number };
   initialAvailability: Record<string, number>;
   remaining: number;
   startAtPay?: boolean;
+  initialDate?: string;
+  initialAdults?: number;
+  initialChildren?: number;
 }) {
   const [view, setView] = useState<View>(props.startAtPay ? 'pay' : 'summary');
   const [editing, setEditing] = useState<Editing>(null);
   const [availability, setAvailability] = useState(props.initialAvailability);
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [adults, setAdults] = useState(2);
-  const [children, setChildren] = useState(1);
+  const [date, setDate] = useState(props.initialDate ?? format(new Date(), 'yyyy-MM-dd'));
+  const [adults, setAdults] = useState(props.initialAdults ?? 2);
+  const [children, setChildren] = useState(props.initialChildren ?? 1);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -171,31 +161,13 @@ export function BookingCard(props: {
 
       {/* ---- DATE EDITOR ---- */}
       {editing === 'date' && (view === 'summary' || view === 'pay') && (
-        <div className="mt-5 rounded-2xl bg-muted p-4">
-          <div className="flex justify-center">
-            <Calendar
-              mode="single"
-              locale={es}
-              weekStartsOn={0}
-              className="bg-transparent [--cell-size:2.5rem]"
-              selected={new Date(`${date}T12:00:00`)}
-              onSelect={(d) => {
-                if (d) {
-                  setDate(format(d, 'yyyy-MM-dd'));
-                  setEditing(null);
-                }
-              }}
-              onMonthChange={(m) => getAvailability(format(m, 'yyyy-MM')).then(setAvailability)}
-              disabled={(d) => {
-                const key = format(d, 'yyyy-MM-dd');
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                if (d < today) return true;
-                return availability[key] !== undefined && availability[key] <= 0;
-              }}
-            />
-          </div>
-          <p className="mt-1 text-center text-sm text-secondary-foreground">Selecciona una fecha disponible</p>
+        <div className="mt-5">
+          <DatePickerPanel
+            date={date}
+            availability={availability}
+            onSelect={(d) => { setDate(d); setEditing(null); }}
+            onMonthChange={(m) => getAvailability(m).then(setAvailability)}
+          />
         </div>
       )}
 
@@ -212,7 +184,7 @@ export function BookingCard(props: {
             <button
               type="button"
               onClick={() => setEditing(null)}
-              className="rounded-full bg-navy px-5 py-2 text-sm font-semibold text-white"
+              className="cursor-pointer rounded-full bg-navy px-5 py-2 text-sm font-semibold text-white"
             >
               Listo
             </button>
@@ -226,12 +198,12 @@ export function BookingCard(props: {
           <button
             type="button"
             onClick={() => setEditing('date')}
-            className="rounded-2xl bg-muted p-4 text-left transition-colors hover:bg-secondary/60"
+            className="cursor-pointer rounded-2xl bg-muted p-4 text-left transition-colors hover:bg-secondary/60"
           >
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground">Fecha de visita</p>
-                <p className="mt-1 font-heading text-lg font-semibold">{longVisitLabel(date)}</p>
+                <p className="mt-1 font-heading text-lg font-semibold">{visitLabelEs(date)}</p>
               </div>
               <CalendarCheck className="h-5 w-5 text-teal" />
             </div>
@@ -239,7 +211,7 @@ export function BookingCard(props: {
           <button
             type="button"
             onClick={() => setEditing('people')}
-            className="rounded-2xl bg-muted p-4 text-left transition-colors hover:bg-secondary/60"
+            className="cursor-pointer rounded-2xl bg-muted p-4 text-left transition-colors hover:bg-secondary/60"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -265,7 +237,7 @@ export function BookingCard(props: {
           <button
             type="button"
             onClick={goToPay}
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-7 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.02]"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-7 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.02]"
           >
             Continuar
             <ArrowRight className="h-4 w-4" />
@@ -353,7 +325,7 @@ export function BookingCard(props: {
             type="button"
             onClick={confirmAndPay}
             disabled={submitting}
-            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-7 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.01] disabled:opacity-60"
+            className="mt-5 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-7 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? 'Procesando…' : 'Confirmar y pagar'}
             {!submitting && <Lock className="h-4 w-4" />}
@@ -407,44 +379,6 @@ export function BookingCard(props: {
           </a>
         </div>
       )}
-    </div>
-  );
-}
-
-function CountRow(props: {
-  label: string;
-  hint: string;
-  value: number;
-  onChange: (v: number) => void;
-  testId: string;
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-xl bg-card px-4 py-3">
-      <div>
-        <p className="font-bold text-navy">{props.label}</p>
-        <p className="text-xs text-muted-foreground">{props.hint}</p>
-      </div>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          aria-label={`Disminuir ${props.label.toLowerCase()}`}
-          disabled={props.value <= 0}
-          onClick={() => props.onChange(Math.max(props.value - 1, 0))}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-navy disabled:opacity-40"
-        >
-          <Minus className="h-4 w-4" />
-        </button>
-        <span data-testid={props.testId} className="w-6 text-center font-heading text-lg font-semibold">{props.value}</span>
-        <button
-          type="button"
-          aria-label={`Aumentar ${props.label.toLowerCase()}`}
-          disabled={props.value >= 20}
-          onClick={() => props.onChange(Math.min(props.value + 1, 20))}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-border text-navy disabled:opacity-40"
-        >
-          <Plus className="h-4 w-4" />
-        </button>
-      </div>
     </div>
   );
 }
