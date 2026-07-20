@@ -30,7 +30,13 @@ type View = 'summary' | 'pay' | 'pending' | 'done';
 type Editing = null | 'date' | 'people';
 
 function capitalize(s: string): string {
-  return s.replace(/\b\p{L}/gu, (c) => c.toUpperCase());
+  // Capitalize the first letter of each space-delimited token. A \b\p{L} regex
+  // would misfire on accented weekdays (JS word boundaries are ASCII-based),
+  // producing "MiÉ"/"SÁb" instead of "Mié"/"Sáb".
+  return s
+    .split(' ')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 }
 
 export function BookingCard(props: {
