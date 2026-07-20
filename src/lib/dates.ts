@@ -26,3 +26,12 @@ export function longDateEs(date: string): string {
     timeZone: 'America/Caracas', weekday: 'long', day: 'numeric', month: 'long',
   }).format(new Date(`${date}T12:00:00-04:00`));
 }
+
+/** "Vie, 17 Jul 2026" — capitalized, dot-free short label for booking cards. */
+export function visitLabelEs(date: string): string {
+  const raw = new Intl.DateTimeFormat('es-VE', {
+    timeZone: 'America/Caracas',
+    weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+  }).format(new Date(`${date}T12:00:00-04:00`));
+  return raw.replace(/\b\p{L}/gu, (c) => c.toUpperCase()).replace(/\./g, '');
+}
