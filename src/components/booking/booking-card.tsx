@@ -84,6 +84,11 @@ export function BookingCard(props: {
   }
 
   async function confirmAndPay() {
+    if (adults + children === 0) {
+      setSubmitError('Agrega al menos un asistente para continuar.');
+      setEditing('people');
+      return;
+    }
     const payload = { date, adults, children, firstName, lastName, email, idType, idNumber, phone, bankCode, otp };
     const parsed = paymentSchema.safeParse(payload);
     if (!parsed.success) {

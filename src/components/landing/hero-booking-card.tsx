@@ -25,6 +25,7 @@ export function HeroBookingCard(props: {
 
   const usd = totalUsd(adults, children, props.prices);
   const open = props.remaining > 0;
+  const attendeeCount = adults + children;
   const continueHref = `/reservar?date=${date}&adults=${adults}&children=${children}&pay=1`;
 
   return (
@@ -116,13 +117,24 @@ export function HeroBookingCard(props: {
             <span className={`h-2 w-2 rounded-full ${open ? 'bg-teal' : 'bg-destructive'}`} />
             {open ? `${props.remaining} cupos disponibles hoy` : 'Sin cupos hoy — elige otra fecha'}
           </p>
-          <Link
-            href={continueHref}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-7 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.02]"
-          >
-            Continuar
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          {attendeeCount === 0 ? (
+            <button
+              type="button"
+              onClick={() => setEditing('people')}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-7 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.02]"
+            >
+              Continuar
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <Link
+              href={continueHref}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-7 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.02]"
+            >
+              Continuar
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          )}
         </div>
       )}
     </div>
