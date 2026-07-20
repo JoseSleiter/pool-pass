@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getReservation } from '@/lib/db/reservations';
 import { adminCheckIn } from '@/app/admin/actions';
+import { requireAdmin } from '@/lib/auth/require-admin';
 import { CheckinCard } from '@/components/admin/checkin-card';
 import { todayCaracas } from '@/lib/dates';
 
@@ -13,6 +14,9 @@ export default async function CheckinPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // Defense in depth: this page reads customer PII via the service role, so it
+  // re-verifies the admin token here instead of trusting middleware alone.
+  await requireAdmin();
   const { id } = await params;
   const reservation = UUID_RE.test(id) ? await getReservation(id).catch(() => null) : null;
 

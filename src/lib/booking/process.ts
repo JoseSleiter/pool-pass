@@ -28,6 +28,7 @@ export type BookingResult =
   | { ok: true; reservation: { id: string; code: string; totalUsd: number; totalVes: number; bcvRate: number } }
   | { ok: false; error: 'validation'; message: string }
   | { ok: false; error: 'capacity'; remaining: number }
+  | { ok: false; error: 'rate_limited'; message: string }
   | { ok: false; error: 'rate_unavailable'; message: string }
   | { ok: false; error: 'payment_declined'; message: string }
   | { ok: false; error: 'payment_pending'; message: string };
@@ -41,7 +42,19 @@ async function safeFail(deps: BookingDeps, id: string): Promise<void> {
   }
 }
 
+/** Bots fill hidden fields a real user never sees. A filled honeypot = drop it. */
+function honeypotTripped(raw: unknown): boolean {
+  return (
+    typeof raw === 'object' && raw !== null &&
+    'website' in raw && typeof (raw as { website: unknown }).website === 'string' &&
+    (raw as { website: string }).website.trim() !== ''
+  );
+}
+
 export async function processBooking(raw: unknown, deps: BookingDeps): Promise<BookingResult> {
+  if (honeypotTripped(raw)) {
+    return { ok: false, error: 'validation', message: 'Datos inválidos' };
+  }
   const parsed = paymentSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: 'validation', message: parsed.error.issues[0]?.message ?? 'Datos inválidos' };

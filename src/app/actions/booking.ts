@@ -1,16 +1,33 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { processBooking, type BookingResult } from '@/lib/booking/process';
-import { getBcvRate, fetchBcvRateFromMirror } from '@/lib/bcv';
+import { getBcvRate, fetchBcvRate } from '@/lib/bcv';
 import { payC2p, mercantilConfigFromEnv } from '@/lib/mercantil/client';
 import {
   reserveSlots, confirmReservation, failReservation,
   getSettings, readRateCache, writeRateCache, monthAvailability,
 } from '@/lib/db/reservations';
+import { checkRateLimit } from '@/lib/db/rate-limit';
 import { sendVoucherEmail } from '@/lib/email/send';
 import { todayCaracas } from '@/lib/dates';
 
+// Public booking action: at most 8 attempts per IP per minute. A pending
+// reservation holds a slot for 10 min, so unthrottled spam could exhaust
+// daily capacity; this caps that abuse while leaving room for honest retries.
+const BOOKING_MAX_PER_MINUTE = 8;
+
 export async function submitBookingAndPay(raw: unknown): Promise<BookingResult> {
+  const h = await headers();
+  const ip = (h.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'unknown';
+  const allowed = await checkRateLimit(`book:${ip}`, BOOKING_MAX_PER_MINUTE, 60);
+  if (!allowed) {
+    return {
+      ok: false, error: 'rate_limited',
+      message: 'Demasiados intentos seguidos. Espera un momento e intenta de nuevo.',
+    };
+  }
+
   return processBooking(raw, {
     getPrices: async () => {
       const s = await getSettings();
@@ -19,7 +36,7 @@ export async function submitBookingAndPay(raw: unknown): Promise<BookingResult> 
     reserve: reserveSlots,
     getRate: () =>
       getBcvRate({
-        fetchRate: fetchBcvRateFromMirror,
+        fetchRate: fetchBcvRate,
         readCache: readRateCache,
         writeCache: writeRateCache,
         now: Date.now,
@@ -33,7 +50,7 @@ export async function submitBookingAndPay(raw: unknown): Promise<BookingResult> 
 
 export async function getCurrentRate(): Promise<number | null> {
   return getBcvRate({
-    fetchRate: fetchBcvRateFromMirror,
+    fetchRate: fetchBcvRate,
     readCache: readRateCache,
     writeCache: writeRateCache,
     now: Date.now,
