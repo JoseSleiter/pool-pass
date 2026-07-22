@@ -173,16 +173,22 @@ export async function updateSettings(p: {
   if (error) throw new Error(error.message);
 }
 
-export async function listOverrides(): Promise<{ date: string; capacity: number }[]> {
-  const { data, error } = await serviceClient()
-    .from('capacity_overrides').select('*').order('date');
-  if (error) throw new Error(error.message);
-  return data;
+export interface OverrideRow {
+  date: string;
+  capacity: number;
+  reason: string | null;
 }
 
-export async function upsertOverride(date: string, capacity: number): Promise<void> {
+export async function listOverrides(): Promise<OverrideRow[]> {
+  const { data, error } = await serviceClient()
+    .from('capacity_overrides').select('date, capacity, reason').order('date');
+  if (error) throw new Error(error.message);
+  return data as OverrideRow[];
+}
+
+export async function upsertOverride(date: string, capacity: number, reason?: string | null): Promise<void> {
   const { error } = await serviceClient()
-    .from('capacity_overrides').upsert({ date, capacity });
+    .from('capacity_overrides').upsert({ date, capacity, reason: reason ?? null });
   if (error) throw new Error(error.message);
 }
 
