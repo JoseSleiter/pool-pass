@@ -90,8 +90,9 @@ export function AdminShell(props: { email: string; topbar?: React.ReactNode; chi
     <div className="min-h-screen bg-slate-50 md:flex">
       {/* Sidebar desktop */}
       <aside className="hidden w-56 shrink-0 flex-col bg-[#0c4a6e] p-4 md:flex">
-        <p className="font-extrabold text-white">🌊 Club La Piscina</p>
-        <p className="mb-5 text-xs text-sky-300">Panel de administración</p>
+        <p className="font-extrabold leading-tight text-white">🌊 Villa Victoria</p>
+        <p className="text-xs font-medium text-sky-300">Complejo Turístico</p>
+        <p className="mb-5 mt-2 text-[11px] uppercase tracking-wide text-sky-400/70">Panel de administración</p>
         <NavLinks />
         <AdminAccount />
       </aside>
@@ -99,7 +100,7 @@ export function AdminShell(props: { email: string; topbar?: React.ReactNode; chi
       {/* Top bar móvil con hamburguesa */}
       <div className="bg-[#0c4a6e] p-3 md:hidden">
         <div className="flex items-center justify-between">
-          <p className="font-extrabold text-white">🌊 Admin</p>
+          <p className="font-extrabold text-white">🌊 Villa Victoria</p>
           <button
             type="button"
             aria-label="Abrir menú"

@@ -1,5 +1,5 @@
 export const landingContent = {
-  clubName: 'Club La Piscina',
+  clubName: 'Complejo Turístico Villa Victoria',
   tagline: 'Tu día de piscina, a un clic',
   subtitle: 'Reserva online, paga con Pago Móvil y entra con tu QR. Sin colas, sin efectivo.',
   steps: [

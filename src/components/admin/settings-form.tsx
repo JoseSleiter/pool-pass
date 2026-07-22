@@ -69,7 +69,7 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
     <main className="mx-auto max-w-2xl space-y-4 p-4">
       <div>
         <h1 className="text-xl font-extrabold">Configuración</h1>
-        <p className="text-sm text-muted-foreground">Administra la capacidad, los precios y las excepciones del club.</p>
+        <p className="text-sm text-muted-foreground">Administra la capacidad, los precios y las excepciones del complejo.</p>
       </div>
 
       {/* Parámetros generales */}
@@ -127,7 +127,7 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
       {/* Excepciones */}
       <div className="rounded-2xl border bg-white p-4">
         <h2 className="font-extrabold">Excepciones de capacidad</h2>
-        <p className="text-sm text-muted-foreground">Usa una excepción cuando un día tenga una capacidad diferente o el club permanezca cerrado.</p>
+        <p className="text-sm text-muted-foreground">Usa una excepción cuando un día tenga una capacidad diferente o el complejo permanezca cerrado.</p>
 
         <div className="mt-3 space-y-2">
           {props.overrides.length === 0 && (
@@ -149,7 +149,7 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
                     </span>
                   </div>
                   <p className="truncate text-muted-foreground">
-                    {closed ? 'Club cerrado' : `Capacidad limitada a ${o.capacity} ${o.capacity === 1 ? 'persona' : 'personas'}`}
+                    {closed ? 'Complejo cerrado' : `Capacidad limitada a ${o.capacity} ${o.capacity === 1 ? 'persona' : 'personas'}`}
                     {o.reason ? ` · ${o.reason}` : ''}
                   </p>
                 </div>

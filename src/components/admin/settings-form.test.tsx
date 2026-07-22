@@ -24,9 +24,9 @@ describe('SettingsForm', () => {
     expect(screen.getByText(/No tienes excepciones configuradas/i)).toBeInTheDocument();
   });
 
-  it('renders a closed-day exception as "Club cerrado" with a "Cerrado" badge', () => {
+  it('renders a closed-day exception as "Complejo cerrado" with a "Cerrado" badge', () => {
     render(<SettingsForm settings={settings} overrides={[{ date: '2030-08-15', capacity: 0, reason: null }]} />);
-    expect(screen.getByText(/Club cerrado/i)).toBeInTheDocument();
+    expect(screen.getByText(/Complejo cerrado/i)).toBeInTheDocument();
     expect(screen.getByText('Cerrado')).toBeInTheDocument();
   });
 
