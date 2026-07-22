@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Pencil, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +10,7 @@ import { Dialog, DialogPopup, DialogTitle, DialogClose } from '@/components/ui/d
 import { ExceptionDialog } from './exception-dialog';
 import { adminUpdateSettings, adminUpsertOverride, adminDeleteOverride } from '@/app/admin/actions';
 import { totalUsd } from '@/lib/money';
+import { shortDateEs } from '@/lib/dates';
 import type { SettingsRow, OverrideRow } from '@/lib/db/reservations';
 
 type SaveState = 'idle' | 'saving' | 'saved';
@@ -31,6 +33,20 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
     capacity !== String(props.settings.daily_capacity) ||
     adult !== String(props.settings.adult_price_usd) ||
     child !== String(props.settings.child_price_usd);
+
+  function edit(setter: (v: string) => void, value: string) {
+    setter(value);
+    setSaveState('idle');
+    setError(null);
+  }
+
+  function discard() {
+    setCapacity(String(props.settings.daily_capacity));
+    setAdult(String(props.settings.adult_price_usd));
+    setChild(String(props.settings.child_price_usd));
+    setSaveState('idle');
+    setError(null);
+  }
 
   async function save() {
     setError(null);
@@ -62,65 +78,97 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
         <div className="space-y-3">
           <div>
             <Label htmlFor="capacity">Capacidad diaria</Label>
-            <Input id="capacity" type="number" className="h-11" value={capacity}
-              onChange={(e) => { setCapacity(e.target.value); setSaveState('idle'); }} />
+            <Input id="capacity" type="number" min={0} className="h-11" value={capacity}
+              onChange={(e) => edit(setCapacity, e.target.value)} />
             <p className="mt-1 text-xs text-muted-foreground">Límite máximo de personas que pueden ingresar en un día normal.</p>
           </div>
           <div className="flex gap-3">
             <div className="flex-1">
               <Label htmlFor="adult">Precio adulto (USD)</Label>
-              <Input id="adult" type="number" step="0.01" className="h-11" value={adult}
-                onChange={(e) => { setAdult(e.target.value); setSaveState('idle'); }} />
+              <Input id="adult" type="number" min={0} step="0.01" className="h-11" value={adult}
+                onChange={(e) => edit(setAdult, e.target.value)} />
             </div>
             <div className="flex-1">
               <Label htmlFor="child">Precio niño (USD)</Label>
-              <Input id="child" type="number" step="0.01" className="h-11" value={child}
-                onChange={(e) => { setChild(e.target.value); setSaveState('idle'); }} />
+              <Input id="child" type="number" min={0} step="0.01" className="h-11" value={child}
+                onChange={(e) => edit(setChild, e.target.value)} />
             </div>
           </div>
           <p className="rounded-lg bg-sky-50 p-2 text-sm text-slate-600">
             Una reserva de 2 adultos y 1 niño tendrá un valor estimado de <b>${preview.toFixed(2)} USD</b>.
           </p>
-          <Button onClick={save} disabled={saveState === 'saving'}>
-            {saveState === 'saving' ? 'Guardando…' : saveState === 'saved' ? 'Configuración guardada' : 'Guardar configuración'}
+        </div>
+
+        {/* Footer de acciones — abajo a la derecha */}
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t pt-4">
+          <p role="status" className="mr-auto text-sm">
+            {error ? (
+              <span className="text-destructive">{error}</span>
+            ) : dirty ? (
+              <span className="text-amber-700">Tienes cambios sin guardar.</span>
+            ) : saveState === 'saved' ? (
+              <span className="font-semibold text-green-700">✓ Todos los cambios están guardados.</span>
+            ) : null}
+          </p>
+          {dirty && (
+            <Button variant="ghost" onClick={discard} disabled={saveState === 'saving'}>Descartar</Button>
+          )}
+          <Button onClick={save} disabled={!dirty || saveState === 'saving'}>
+            {saveState === 'saving' ? 'Guardando…' : 'Guardar configuración'}
           </Button>
-          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-          {saveState === 'saved' && !dirty && <p className="text-sm font-semibold text-green-700">Todos los cambios están guardados.</p>}
-          {dirty && <p className="text-sm text-amber-700">Tienes cambios sin guardar.</p>}
         </div>
       </div>
 
       {/* Excepciones */}
       <div className="rounded-2xl border bg-white p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h2 className="font-extrabold">Excepciones de capacidad</h2>
-            <p className="text-sm text-muted-foreground">Usa una excepción cuando un día tenga una capacidad diferente o el club permanezca cerrado.</p>
-          </div>
-          <Button size="sm" onClick={() => setShowNew(true)}>+ Nueva excepción</Button>
-        </div>
+        <h2 className="font-extrabold">Excepciones de capacidad</h2>
+        <p className="text-sm text-muted-foreground">Usa una excepción cuando un día tenga una capacidad diferente o el club permanezca cerrado.</p>
 
         <div className="mt-3 space-y-2">
           {props.overrides.length === 0 && (
-            <p className="rounded-lg bg-slate-50 p-3 text-sm text-muted-foreground">
-              No tienes excepciones configuradas. Agrega una fecha especial cuando la capacidad cambie.
+            <p className="rounded-lg bg-slate-50 p-4 text-center text-sm text-muted-foreground">
+              No tienes excepciones configuradas.<br />Agrega una fecha especial cuando la capacidad cambie.
             </p>
           )}
-          {props.overrides.map((o) => (
-            <div key={o.date} className="flex items-center justify-between rounded-xl border p-3 text-sm">
-              <div>
-                <p className="font-semibold">{o.date}</p>
-                <p className="text-muted-foreground">
-                  {o.capacity === 0 ? 'Club cerrado' : `Capacidad limitada a ${o.capacity} ${o.capacity === 1 ? 'persona' : 'personas'}`}
-                  {o.reason ? ` · ${o.reason}` : ''}
-                </p>
+          {props.overrides.map((o) => {
+            const closed = o.capacity === 0;
+            return (
+              <div key={o.date} className="flex items-center justify-between gap-3 rounded-xl border p-3 text-sm">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold capitalize">{shortDateEs(o.date)}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      closed ? 'bg-red-100 text-red-700' : 'bg-sky-100 text-sky-800'
+                    }`}>
+                      {closed ? 'Cerrado' : 'Especial'}
+                    </span>
+                  </div>
+                  <p className="truncate text-muted-foreground">
+                    {closed ? 'Club cerrado' : `Capacidad limitada a ${o.capacity} ${o.capacity === 1 ? 'persona' : 'personas'}`}
+                    {o.reason ? ` · ${o.reason}` : ''}
+                  </p>
+                </div>
+                {/* Acciones de la fila — alineadas a la derecha */}
+                <div className="flex shrink-0 gap-1">
+                  <Button size="icon-sm" variant="ghost" aria-label="Editar excepción" title="Editar"
+                    onClick={() => setEditing(o)}>
+                    <Pencil />
+                  </Button>
+                  <Button size="icon-sm" variant="destructive" aria-label="Eliminar excepción" title="Eliminar"
+                    onClick={() => { setDeleteError(null); setDeleting(o); }}>
+                    <Trash2 />
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="ghost" onClick={() => setEditing(o)}>Editar</Button>
-                <Button size="sm" variant="ghost" onClick={() => { setDeleteError(null); setDeleting(o); }}>Eliminar</Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+
+        {/* Footer de acciones — abajo a la derecha */}
+        <div className="mt-4 flex justify-end border-t pt-4">
+          <Button onClick={() => setShowNew(true)}>
+            <Plus /> Nueva excepción
+          </Button>
         </div>
       </div>
 
@@ -151,7 +199,7 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
       )}
       {/* Confirmar borrado */}
       {deleting && (
-        <Dialog open={deleting !== null} onOpenChange={(o) => { if (!o) setDeleting(null); setDeleteError(null); }}>
+        <Dialog open={deleting !== null} onOpenChange={(o) => { if (!o) { setDeleting(null); setDeleteError(null); } }}>
           <DialogPopup>
             <DialogTitle>¿Eliminar esta excepción?</DialogTitle>
             <p className="mt-2 text-sm text-muted-foreground">Esta acción cambiará la capacidad disponible para ese día.</p>
