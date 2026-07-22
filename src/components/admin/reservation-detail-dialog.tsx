@@ -4,15 +4,8 @@ import { Dialog, DialogPopup, DialogTitle, DialogClose } from '@/components/ui/d
 import { Button } from '@/components/ui/button';
 import { partyLabel } from '@/lib/party';
 import { longDateEs } from '@/lib/dates';
+import { statusLabelEs } from '@/lib/reservation-status';
 import type { ReservationRow } from '@/lib/db/reservations';
-
-const STATUS_ES: Record<ReservationRow['status'], string> = {
-  confirmed: 'Confirmada',
-  checked_in: 'Ingresó',
-  pending_payment: 'Pago en verificación',
-  failed: 'Fallida',
-  expired: 'Expirada',
-};
 
 export function ReservationDetailDialog(props: {
   reservation: ReservationRow;
@@ -34,7 +27,7 @@ export function ReservationDetailDialog(props: {
             Pago: ${Number(r.total_usd).toFixed(2)} · Bs. {Number(r.total_ves ?? 0).toFixed(2)}
           </p>
           <p className="capitalize text-muted-foreground">Fecha: {longDateEs(r.date)}</p>
-          <p className="font-semibold">Estado: {STATUS_ES[r.status]}</p>
+          <p className="font-semibold">Estado: {statusLabelEs(r)}</p>
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <DialogClose render={<Button variant="outline">Cerrar</Button>} />

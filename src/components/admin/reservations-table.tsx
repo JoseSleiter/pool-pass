@@ -23,9 +23,16 @@ export function ReservationsTable(props: {
   onCheckIn: (id: string) => Promise<{ ok: boolean; message?: string }> | void;
   onResend: (id: string) => void;
   initialChip?: ChipKey;
+  chip?: ChipKey;
+  onChipChange?: (chip: ChipKey) => void;
 }) {
   const [q, setQ] = useState('');
-  const [chip, setChip] = useState<ChipKey>(props.initialChip ?? 'all');
+  const [internalChip, setInternalChip] = useState<ChipKey>(props.initialChip ?? 'all');
+  const chip = props.chip ?? internalChip;
+  const setChip = (c: ChipKey) => {
+    if (props.onChipChange) props.onChipChange(c);
+    else setInternalChip(c);
+  };
   const [detailId, setDetailId] = useState<string | null>(null);
   const [checkinId, setCheckinId] = useState<string | null>(null);
 

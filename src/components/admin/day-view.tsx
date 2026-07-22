@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ export function AdminDayView(props: { date: string; rows: ReservationRow[]; summ
   const [toast, setToast] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const [chip, setChip] = useState<ChipKey>('all');
   const today = todayCaracas();
+  const dismissToast = useCallback(() => setToast(null), []);
 
   const go = (d: string) => router.push(`/admin?date=${d}`);
   const shift = (days: number) => {
@@ -44,10 +45,10 @@ export function AdminDayView(props: { date: string; rows: ReservationRow[]; summ
         <h2 className="font-extrabold">Reservas programadas</h2>
         <p className="mb-3 text-sm text-muted-foreground">Consulta y gestiona los accesos del día</p>
         <ReservationsTable
-          key={chip}
           rows={props.rows}
           today={today}
-          initialChip={chip}
+          chip={chip}
+          onChipChange={setChip}
           onCheckIn={async (id) => {
             const res = await adminCheckIn(id);
             setToast(res.ok
@@ -65,7 +66,7 @@ export function AdminDayView(props: { date: string; rows: ReservationRow[]; summ
         />
       </div>
 
-      <Toast kind={toast?.kind ?? 'success'} message={toast?.message ?? null} onDismiss={() => setToast(null)} />
+      <Toast kind={toast?.kind ?? 'success'} message={toast?.message ?? null} onDismiss={dismissToast} />
     </main>
   );
 }

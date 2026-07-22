@@ -2,26 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { partyLabel } from '@/lib/party';
-import { caracasTime } from '@/lib/dates';
+import { statusLabelEs, STATUS_CHIP_CLASS } from '@/lib/reservation-status';
 import type { ReservationRow } from '@/lib/db/reservations';
-
-const CHIP: Record<ReservationRow['status'], string> = {
-  confirmed: 'bg-sky-100 text-sky-800',
-  checked_in: 'bg-green-100 text-green-800',
-  pending_payment: 'bg-amber-100 text-amber-800',
-  failed: 'bg-red-100 text-red-700',
-  expired: 'bg-slate-100 text-slate-500',
-};
-
-function statusLabel(r: ReservationRow): string {
-  switch (r.status) {
-    case 'checked_in': return `Ingresó ${r.checked_in_at ? caracasTime(r.checked_in_at) : ''}`.trim();
-    case 'pending_payment': return 'Pago en verificación';
-    case 'confirmed': return 'Confirmada';
-    case 'failed': return 'Fallida';
-    case 'expired': return 'Expirada';
-  }
-}
 
 export function ReservationCard(props: {
   reservation: ReservationRow;
@@ -34,8 +16,8 @@ export function ReservationCard(props: {
     <div data-testid="res-row" className="rounded-2xl border bg-white p-4">
       <div className="flex items-start justify-between gap-2">
         <span className="font-mono font-semibold">{r.code}</span>
-        <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${CHIP[r.status]}`}>
-          {statusLabel(r)}
+        <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_CHIP_CLASS[r.status]}`}>
+          {statusLabelEs(r)}
         </span>
       </div>
       <p className="mt-1 text-sm font-medium">{r.first_name} {r.last_name}</p>

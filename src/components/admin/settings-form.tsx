@@ -24,6 +24,7 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
   const [showNew, setShowNew] = useState(false);
   const [editing, setEditing] = useState<OverrideRow | null>(null);
   const [deleting, setDeleting] = useState<OverrideRow | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const preview = totalUsd(2, 1, { adult: Number(adult) || 0, child: Number(child) || 0 });
   const dirty =
@@ -116,7 +117,7 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
               </div>
               <div className="flex gap-2">
                 <Button size="sm" variant="ghost" onClick={() => setEditing(o)}>Editar</Button>
-                <Button size="sm" variant="ghost" onClick={() => setDeleting(o)}>Eliminar</Button>
+                <Button size="sm" variant="ghost" onClick={() => { setDeleteError(null); setDeleting(o); }}>Eliminar</Button>
               </div>
             </div>
           ))}
@@ -150,16 +151,17 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
       )}
       {/* Confirmar borrado */}
       {deleting && (
-        <Dialog open={deleting !== null} onOpenChange={(o) => { if (!o) setDeleting(null); }}>
+        <Dialog open={deleting !== null} onOpenChange={(o) => { if (!o) setDeleting(null); setDeleteError(null); }}>
           <DialogPopup>
             <DialogTitle>¿Eliminar esta excepción?</DialogTitle>
             <p className="mt-2 text-sm text-muted-foreground">Esta acción cambiará la capacidad disponible para ese día.</p>
+            {deleteError && <p role="alert" className="mt-2 text-sm text-destructive">{deleteError}</p>}
             <div className="mt-4 flex justify-end gap-2">
               <DialogClose render={<Button variant="outline">Cancelar</Button>} />
               <Button variant="destructive" onClick={async () => {
-                await adminDeleteOverride(deleting.date);
-                setDeleting(null);
-                router.refresh();
+                const res = await adminDeleteOverride(deleting.date);
+                if (res.ok) { setDeleting(null); router.refresh(); }
+                else setDeleteError(res.message ?? 'No se pudo eliminar.');
               }}>Eliminar</Button>
             </div>
           </DialogPopup>

@@ -41,9 +41,12 @@ export function CheckinDialog(props: {
             disabled={busy}
             onClick={async () => {
               setBusy(true);
-              const res = await props.onApprove(r.id);
-              setBusy(false);
-              if (res.ok) props.onOpenChange(false);
+              try {
+                const res = await props.onApprove(r.id);
+                if (res.ok) props.onOpenChange(false);
+              } finally {
+                setBusy(false);
+              }
             }}
           >
             {busy ? 'Aprobando…' : 'Aprobar check-in'}

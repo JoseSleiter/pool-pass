@@ -71,11 +71,11 @@ function Topbar(props: { context: React.ReactNode }) {
         <button
           type="button"
           aria-label="Notificaciones"
-          className="grid size-9 cursor-pointer place-items-center rounded-full border bg-white text-slate-600 hover:bg-sky-50"
+          className="grid size-9 place-items-center rounded-full border bg-white text-slate-600 hover:bg-sky-50"
         >
           <Bell className="size-4" />
         </button>
-        <span className="flex cursor-pointer items-center gap-2 rounded-full border bg-white px-2 py-1 text-sm">
+        <span className="flex items-center gap-2 rounded-full border bg-white px-2 py-1 text-sm">
           <span className="grid size-6 place-items-center rounded-full bg-sky-400 text-xs font-bold text-sky-950">A</span>
           Admin
         </span>

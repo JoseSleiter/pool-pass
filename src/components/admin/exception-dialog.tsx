@@ -17,6 +17,7 @@ export function ExceptionDialog(props: {
   const [capacity, setCapacity] = useState(String(props.initial && props.initial.capacity > 0 ? props.initial.capacity : 25));
   const [reason, setReason] = useState(props.initial?.reason ?? '');
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const editing = Boolean(props.initial);
 
   return (
@@ -56,16 +57,18 @@ export function ExceptionDialog(props: {
         </div>
         <div className="mt-4 flex justify-end gap-2">
           <DialogClose render={<Button variant="outline">Cancelar</Button>} />
-          <Button onClick={async () => {
+          <Button disabled={busy} onClick={async () => {
             setError(null);
             if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { setError('Selecciona una fecha válida.'); return; }
             const cap = closed ? 0 : Number(capacity);
             if (!closed && (!Number.isInteger(cap) || cap < 1)) { setError('Capacidad inválida.'); return; }
+            setBusy(true);
             const res = await props.onSave(date, cap, reason.trim() || undefined);
+            setBusy(false);
             if (res.ok) props.onOpenChange(false);
             else setError(res.message ?? 'No se pudo guardar.');
           }}>
-            Guardar excepción
+            {busy ? 'Guardando…' : 'Guardar excepción'}
           </Button>
         </div>
       </DialogPopup>
