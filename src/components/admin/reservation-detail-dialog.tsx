@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { partyLabel } from '@/lib/party';
 import { longDateEs } from '@/lib/dates';
 import { statusLabelEs } from '@/lib/reservation-status';
+import { DIALOG_FOOTER, DIALOG_ACTION } from './ui-constants';
 import type { ReservationRow } from '@/lib/db/reservations';
 
 export function ReservationDetailDialog(props: {
@@ -29,10 +30,10 @@ export function ReservationDetailDialog(props: {
           <p className="capitalize text-muted-foreground">Fecha: {longDateEs(r.date)}</p>
           <p className="font-semibold">Estado: {statusLabelEs(r)}</p>
         </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <DialogClose render={<Button variant="outline">Cerrar</Button>} />
+        <div className={DIALOG_FOOTER}>
+          <DialogClose render={<Button variant="outline" className={DIALOG_ACTION}>Cerrar</Button>} />
           {r.status === 'confirmed' && (
-            <Button onClick={props.onStartCheckin}>Iniciar check-in</Button>
+            <Button className={DIALOG_ACTION} onClick={props.onStartCheckin}>Iniciar check-in</Button>
           )}
         </div>
       </DialogPopup>

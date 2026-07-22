@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { partyLabel } from '@/lib/party';
 import { statusLabelEs, STATUS_CHIP_CLASS } from '@/lib/reservation-status';
+import { ADMIN_ACTION } from './ui-constants';
 import type { ReservationRow } from '@/lib/db/reservations';
 
 export function ReservationCard(props: {
@@ -27,13 +28,13 @@ export function ReservationCard(props: {
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
-        <Button variant="secondary" size="sm" onClick={() => props.onDetail(r.id)}>Ver detalle</Button>
+        <Button variant="secondary" className={ADMIN_ACTION} onClick={() => props.onDetail(r.id)}>Ver detalle</Button>
         {['confirmed', 'checked_in'].includes(r.status) && (
-          <Button variant="outline" size="sm" onClick={() => props.onResend(r.id)}>✉️ Reenviar correo</Button>
+          <Button variant="outline" className={ADMIN_ACTION} onClick={() => props.onResend(r.id)}>✉️ Reenviar correo</Button>
         )}
         <div className="ml-auto">
           {r.status === 'confirmed' ? (
-            <Button size="sm" onClick={() => props.onCheckin(r.id)}>Check-in</Button>
+            <Button className={ADMIN_ACTION} onClick={() => props.onCheckin(r.id)}>Check-in</Button>
           ) : r.status === 'checked_in' ? (
             <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
               Ingreso registrado

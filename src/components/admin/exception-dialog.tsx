@@ -5,6 +5,7 @@ import { Dialog, DialogPopup, DialogTitle, DialogClose } from '@/components/ui/d
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DIALOG_FOOTER, DIALOG_ACTION, ADMIN_INPUT } from './ui-constants';
 
 export function ExceptionDialog(props: {
   open: boolean;
@@ -27,7 +28,7 @@ export function ExceptionDialog(props: {
         <div className="mt-3 space-y-3">
           <div>
             <Label htmlFor="ex-date">Fecha</Label>
-            <Input id="ex-date" type="date" className="h-11" value={date}
+            <Input id="ex-date" type="date" className={ADMIN_INPUT} value={date}
               disabled={editing} onChange={(e) => setDate(e.target.value)} />
           </div>
           <fieldset className="space-y-1">
@@ -44,20 +45,20 @@ export function ExceptionDialog(props: {
           {!closed && (
             <div>
               <Label htmlFor="ex-cap">Capacidad máxima</Label>
-              <Input id="ex-cap" type="number" className="h-11" value={capacity}
+              <Input id="ex-cap" type="number" min={1} className={ADMIN_INPUT} value={capacity}
                 onChange={(e) => setCapacity(e.target.value)} />
             </div>
           )}
           <div>
             <Label htmlFor="ex-reason">Motivo (opcional)</Label>
-            <Input id="ex-reason" className="h-11" placeholder="Mantenimiento de piscina"
+            <Input id="ex-reason" className={ADMIN_INPUT} placeholder="Mantenimiento de piscina"
               value={reason} onChange={(e) => setReason(e.target.value)} />
           </div>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <DialogClose render={<Button variant="outline">Cancelar</Button>} />
-          <Button disabled={busy} onClick={async () => {
+        <div className={DIALOG_FOOTER}>
+          <DialogClose render={<Button variant="outline" className={DIALOG_ACTION}>Cancelar</Button>} />
+          <Button className={DIALOG_ACTION} disabled={busy} onClick={async () => {
             setError(null);
             if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { setError('Selecciona una fecha válida.'); return; }
             const cap = closed ? 0 : Number(capacity);

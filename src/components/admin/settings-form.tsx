@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogPopup, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { ExceptionDialog } from './exception-dialog';
+import { ADMIN_ACTION, ADMIN_ICON_ACTION, ADMIN_INPUT, DIALOG_FOOTER, DIALOG_ACTION } from './ui-constants';
 import { adminUpdateSettings, adminUpsertOverride, adminDeleteOverride } from '@/app/admin/actions';
 import { totalUsd } from '@/lib/money';
 import { shortDateEs } from '@/lib/dates';
@@ -78,19 +79,19 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
         <div className="space-y-3">
           <div>
             <Label htmlFor="capacity">Capacidad diaria</Label>
-            <Input id="capacity" type="number" min={0} className="h-11" value={capacity}
+            <Input id="capacity" type="number" min={0} className={ADMIN_INPUT} value={capacity}
               onChange={(e) => edit(setCapacity, e.target.value)} />
             <p className="mt-1 text-xs text-muted-foreground">Límite máximo de personas que pueden ingresar en un día normal.</p>
           </div>
           <div className="flex gap-3">
             <div className="flex-1">
               <Label htmlFor="adult">Precio adulto (USD)</Label>
-              <Input id="adult" type="number" min={0} step="0.01" className="h-11" value={adult}
+              <Input id="adult" type="number" min={0} step="0.01" className={ADMIN_INPUT} value={adult}
                 onChange={(e) => edit(setAdult, e.target.value)} />
             </div>
             <div className="flex-1">
               <Label htmlFor="child">Precio niño (USD)</Label>
-              <Input id="child" type="number" min={0} step="0.01" className="h-11" value={child}
+              <Input id="child" type="number" min={0} step="0.01" className={ADMIN_INPUT} value={child}
                 onChange={(e) => edit(setChild, e.target.value)} />
             </div>
           </div>
@@ -99,9 +100,9 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
           </p>
         </div>
 
-        {/* Footer de acciones — abajo a la derecha */}
-        <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t pt-4">
-          <p role="status" className="mr-auto text-sm">
+        {/* Footer de acciones — descartar a la izquierda, guardar a la derecha */}
+        <div className="mt-4 border-t pt-4">
+          <p role="status" className="mb-3 text-sm">
             {error ? (
               <span className="text-destructive">{error}</span>
             ) : dirty ? (
@@ -110,12 +111,16 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
               <span className="font-semibold text-green-700">✓ Todos los cambios están guardados.</span>
             ) : null}
           </p>
-          {dirty && (
-            <Button variant="ghost" onClick={discard} disabled={saveState === 'saving'}>Descartar</Button>
-          )}
-          <Button onClick={save} disabled={!dirty || saveState === 'saving'}>
-            {saveState === 'saving' ? 'Guardando…' : 'Guardar configuración'}
-          </Button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              {dirty && (
+                <Button variant="ghost" className={DIALOG_ACTION} onClick={discard} disabled={saveState === 'saving'}>Descartar</Button>
+              )}
+            </div>
+            <Button className={DIALOG_ACTION} onClick={save} disabled={!dirty || saveState === 'saving'}>
+              {saveState === 'saving' ? 'Guardando…' : 'Guardar configuración'}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -150,11 +155,11 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
                 </div>
                 {/* Acciones de la fila — alineadas a la derecha */}
                 <div className="flex shrink-0 gap-1">
-                  <Button size="icon-sm" variant="ghost" aria-label="Editar excepción" title="Editar"
+                  <Button size="icon" className={ADMIN_ICON_ACTION} variant="ghost" aria-label="Editar excepción" title="Editar"
                     onClick={() => setEditing(o)}>
                     <Pencil />
                   </Button>
-                  <Button size="icon-sm" variant="destructive" aria-label="Eliminar excepción" title="Eliminar"
+                  <Button size="icon" className={ADMIN_ICON_ACTION} variant="destructive" aria-label="Eliminar excepción" title="Eliminar"
                     onClick={() => { setDeleteError(null); setDeleting(o); }}>
                     <Trash2 />
                   </Button>
@@ -166,7 +171,7 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
 
         {/* Footer de acciones — abajo a la derecha */}
         <div className="mt-4 flex justify-end border-t pt-4">
-          <Button onClick={() => setShowNew(true)}>
+          <Button className={ADMIN_ACTION} onClick={() => setShowNew(true)}>
             <Plus /> Nueva excepción
           </Button>
         </div>
@@ -204,9 +209,9 @@ export function SettingsForm(props: { settings: SettingsRow; overrides: Override
             <DialogTitle>¿Eliminar esta excepción?</DialogTitle>
             <p className="mt-2 text-sm text-muted-foreground">Esta acción cambiará la capacidad disponible para ese día.</p>
             {deleteError && <p role="alert" className="mt-2 text-sm text-destructive">{deleteError}</p>}
-            <div className="mt-4 flex justify-end gap-2">
-              <DialogClose render={<Button variant="outline">Cancelar</Button>} />
-              <Button variant="destructive" onClick={async () => {
+            <div className={DIALOG_FOOTER}>
+              <DialogClose render={<Button variant="outline" className={DIALOG_ACTION}>Cancelar</Button>} />
+              <Button variant="destructive" className={DIALOG_ACTION} onClick={async () => {
                 const res = await adminDeleteOverride(deleting.date);
                 if (res.ok) { setDeleting(null); router.refresh(); }
                 else setDeleteError(res.message ?? 'No se pudo eliminar.');

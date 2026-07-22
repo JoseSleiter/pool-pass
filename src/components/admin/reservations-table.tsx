@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { ADMIN_INPUT } from './ui-constants';
 import { ReservationCard } from './reservation-card';
 import { ReservationDetailDialog } from './reservation-detail-dialog';
 import { CheckinDialog } from './checkin-dialog';
@@ -52,7 +53,7 @@ export function ReservationsTable(props: {
   return (
     <div className="space-y-3">
       <div className="relative">
-        <Input placeholder="Buscar por nombre, código o cédula…" className="h-11 pr-9"
+        <Input placeholder="Buscar por nombre, código o cédula…" className={`${ADMIN_INPUT} pr-9`}
           value={q} onChange={(e) => setQ(e.target.value)} />
         {q !== '' && (
           <button type="button" aria-label="Limpiar búsqueda"

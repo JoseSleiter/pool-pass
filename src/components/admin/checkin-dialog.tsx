@@ -5,6 +5,7 @@ import { Dialog, DialogPopup, DialogTitle, DialogClose } from '@/components/ui/d
 import { Button } from '@/components/ui/button';
 import { partyLabel } from '@/lib/party';
 import { longDateEs } from '@/lib/dates';
+import { DIALOG_FOOTER, DIALOG_ACTION } from './ui-constants';
 import type { ReservationRow } from '@/lib/db/reservations';
 
 export function CheckinDialog(props: {
@@ -35,9 +36,10 @@ export function CheckinDialog(props: {
             Pago: ${Number(r.total_usd).toFixed(2)} · Bs. {Number(r.total_ves ?? 0).toFixed(2)}
           </p>
         </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <DialogClose render={<Button variant="outline">Cancelar</Button>} />
+        <div className={DIALOG_FOOTER}>
+          <DialogClose render={<Button variant="outline" className={DIALOG_ACTION}>Cancelar</Button>} />
           <Button
+            className={DIALOG_ACTION}
             disabled={busy}
             onClick={async () => {
               setBusy(true);

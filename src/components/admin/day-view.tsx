@@ -8,6 +8,7 @@ import { Toast } from '@/components/ui/toast';
 import { MetricGrid } from './metric-cards';
 import { ReservationsTable, type ChipKey } from './reservations-table';
 import { adminCheckIn, adminResendVoucher, type DaySummary } from '@/app/admin/actions';
+import { ADMIN_ACTION, ADMIN_INPUT } from './ui-constants';
 import { longDateEs, todayCaracas } from '@/lib/dates';
 import type { ReservationRow } from '@/lib/db/reservations';
 
@@ -33,10 +34,10 @@ export function AdminDayView(props: { date: string; rows: ReservationRow[]; summ
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Input type="date" className="h-11 w-fit bg-white" value={props.date} onChange={(e) => go(e.target.value)} />
-        <Button variant="outline" size="sm" onClick={() => shift(-1)}>‹ Ayer</Button>
-        <Button variant="outline" size="sm" onClick={() => shift(1)}>Mañana ›</Button>
-        {props.date !== today && <Button size="sm" onClick={() => go(today)}>Hoy</Button>}
+        <Input type="date" className={`${ADMIN_INPUT} w-full bg-white sm:w-fit`} value={props.date} onChange={(e) => go(e.target.value)} />
+        <Button variant="outline" className={ADMIN_ACTION} onClick={() => shift(-1)}>‹ Ayer</Button>
+        <Button variant="outline" className={ADMIN_ACTION} onClick={() => shift(1)}>Mañana ›</Button>
+        {props.date !== today && <Button className={ADMIN_ACTION} onClick={() => go(today)}>Hoy</Button>}
       </div>
 
       <MetricGrid summary={props.summary} onReviewPending={() => setChip('pending_payment')} />
