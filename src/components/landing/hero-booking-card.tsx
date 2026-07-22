@@ -43,13 +43,26 @@ export function HeroBookingCard(props: {
 
       {/* ---- DATE EDITOR ---- */}
       {editing === 'date' && (
-        <div className="mt-6">
-          <DatePickerPanel
-            date={date}
-            availability={availability}
-            onSelect={(d) => { setDate(d); setEditing(null); }}
-            onMonthChange={(m) => getAvailability(m).then(setAvailability)}
-          />
+        <div className="mt-6 rounded-2xl bg-muted p-5">
+          <h3 className="font-heading text-xl font-semibold">¿Cuándo vienes?</h3>
+          <div className="mt-4">
+            <DatePickerPanel
+              date={date}
+              availability={availability}
+              onSelect={(d) => setDate(d)}
+              onMonthChange={(m) => getAvailability(m).then(setAvailability)}
+            />
+          </div>
+          <div className="mt-4 flex items-center justify-between">
+            <p className="text-xs text-secondary-foreground">Solo mostramos días con cupo disponible</p>
+            <button
+              type="button"
+              onClick={() => setEditing(null)}
+              className="cursor-pointer rounded-full bg-navy px-5 py-2 text-sm font-semibold text-white"
+            >
+              Listo
+            </button>
+          </div>
         </div>
       )}
 

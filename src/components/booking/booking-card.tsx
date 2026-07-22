@@ -172,13 +172,26 @@ export function BookingCard(props: {
 
       {/* ---- DATE EDITOR ---- */}
       {editing === 'date' && (view === 'summary' || view === 'pay') && (
-        <div className="mt-5">
-          <DatePickerPanel
-            date={date}
-            availability={availability}
-            onSelect={(d) => { setDate(d); setEditing(null); }}
-            onMonthChange={(m) => getAvailability(m).then(setAvailability)}
-          />
+        <div className="mt-5 rounded-2xl bg-muted p-5">
+          <h2 className="font-heading text-xl font-semibold">¿Cuándo vienes?</h2>
+          <div className="mt-4">
+            <DatePickerPanel
+              date={date}
+              availability={availability}
+              onSelect={(d) => setDate(d)}
+              onMonthChange={(m) => getAvailability(m).then(setAvailability)}
+            />
+          </div>
+          <div className="mt-4 flex items-center justify-between">
+            <p className="text-xs text-secondary-foreground">Solo mostramos días con cupo disponible</p>
+            <button
+              type="button"
+              onClick={() => setEditing(null)}
+              className="cursor-pointer rounded-full bg-navy px-5 py-2 text-sm font-semibold text-white"
+            >
+              Listo
+            </button>
+          </div>
         </div>
       )}
 
