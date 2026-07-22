@@ -139,6 +139,12 @@ describe('admin settings validation (authorized user)', () => {
     expect(res.ok).toBe(false);
     expect(upsertOverride).not.toHaveBeenCalled();
   });
+
+  it('adminUpsertOverride forwards reason to db', async () => {
+    const res = await adminUpsertOverride('2030-02-01', 25, 'Mantenimiento');
+    expect(res.ok).toBe(true);
+    expect(upsertOverride).toHaveBeenCalledWith('2030-02-01', 25, 'Mantenimiento');
+  });
 });
 
 describe('adminGetDaySummary aggregates (authorized user)', () => {
