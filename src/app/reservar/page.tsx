@@ -2,22 +2,23 @@ import { SiteHeader } from '@/components/landing/site-header';
 import { SiteFooter } from '@/components/landing/site-footer';
 import { BookingCard } from '@/components/booking/booking-card';
 import { getPublicPrices, getAvailability, getTodayRemaining } from '@/app/actions/booking';
-import { todayCaracas } from '@/lib/dates';
+import { parseBookingParams } from '@/lib/booking/search-params';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ReservarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ pay?: string }>;
+  searchParams: Promise<{ pay?: string; date?: string; adults?: string; children?: string }>;
 }) {
-  // Anchor "current month" to Venezuela's clock, not the server's (UTC rolls over ~4h early).
-  const month = todayCaracas().slice(0, 7);
-  const [prices, availability, remaining, sp] = await Promise.all([
+  const sp = await searchParams;
+  const { date, adults, children } = parseBookingParams(sp);
+  // Anchor availability to the carried date's month so the calendar matches the selection.
+  const month = date.slice(0, 7);
+  const [prices, availability, remaining] = await Promise.all([
     getPublicPrices(),
     getAvailability(month),
     getTodayRemaining(),
-    searchParams,
   ]);
   return (
     <>
@@ -28,6 +29,9 @@ export default async function ReservarPage({
           initialAvailability={availability}
           remaining={remaining}
           startAtPay={sp.pay === '1'}
+          initialDate={date}
+          initialAdults={adults}
+          initialChildren={children}
         />
       </main>
       <SiteFooter />

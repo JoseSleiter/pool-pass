@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { VoucherData } from '@/lib/booking/process';
 
-const sendMock = vi.fn();
+const { sendMailMock, createTransportMock } = vi.hoisted(() => {
+  const sendMailMock = vi.fn();
+  return { sendMailMock, createTransportMock: vi.fn(() => ({ sendMail: sendMailMock })) };
+});
 
-vi.mock('resend', () => ({
-  Resend: class {
-    emails = { send: sendMock };
-  },
+vi.mock('nodemailer', () => ({
+  default: { createTransport: createTransportMock },
 }));
 
 import { sendVoucherEmail } from './send';
@@ -20,31 +21,43 @@ const voucher: VoucherData = {
 
 describe('sendVoucherEmail', () => {
   beforeEach(() => {
-    sendMock.mockReset();
-    vi.stubEnv('RESEND_API_KEY', 're_test_key');
+    sendMailMock.mockReset();
+    createTransportMock.mockClear();
+    vi.stubEnv('SMTP_HOST', 'smtp.gmail.com');
+    vi.stubEnv('SMTP_PORT', '465');
+    vi.stubEnv('SMTP_USER', 'club@gmail.com');
+    vi.stubEnv('SMTP_PASS', 'app-password');
     vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://app.test');
     vi.stubEnv('VOUCHER_FROM_EMAIL', 'pases@app.test');
   });
 
-  it('sends pre-rendered html containing the code and QR url', async () => {
-    sendMock.mockResolvedValue({ error: null });
+  it('sends pre-rendered html containing the code and QR url via SMTP', async () => {
+    sendMailMock.mockResolvedValue({ rejected: [], accepted: ['ana@example.com'] });
 
     await sendVoucherEmail(voucher);
 
-    expect(sendMock).toHaveBeenCalledTimes(1);
-    const arg = sendMock.mock.calls[0][0];
+    expect(sendMailMock).toHaveBeenCalledTimes(1);
+    const arg = sendMailMock.mock.calls[0][0];
     expect(arg.from).toBe('pases@app.test');
     expect(arg.to).toBe('ana@example.com');
     expect(arg.subject).toBe('Tu pase de piscina — PP-4F7K2');
-    expect(arg.react).toBeUndefined();
     expect(typeof arg.html).toBe('string');
     expect(arg.html).toContain('PP-4F7K2');
     expect(arg.html).toContain('https://app.test/api/qr/uuid-1');
   });
 
-  it('throws when resend reports an error', async () => {
-    sendMock.mockResolvedValue({ error: { message: 'invalid api key' } });
+  it('falls back to SMTP_USER as the from address when VOUCHER_FROM_EMAIL is unset', async () => {
+    vi.stubEnv('VOUCHER_FROM_EMAIL', '');
+    sendMailMock.mockResolvedValue({ rejected: [], accepted: ['ana@example.com'] });
 
-    await expect(sendVoucherEmail(voucher)).rejects.toThrow('resend: invalid api key');
+    await sendVoucherEmail(voucher);
+
+    expect(sendMailMock.mock.calls[0][0].from).toBe('club@gmail.com');
+  });
+
+  it('throws when SMTP rejects the recipient', async () => {
+    sendMailMock.mockResolvedValue({ rejected: ['ana@example.com'], accepted: [] });
+
+    await expect(sendVoucherEmail(voucher)).rejects.toThrow(/smtp/i);
   });
 });

@@ -102,13 +102,18 @@ export async function adminUpdateSettings(raw: unknown): Promise<{ ok: boolean; 
   }
 }
 
-export async function adminUpsertOverride(date: string, capacity: number): Promise<{ ok: boolean; message?: string }> {
+export async function adminUpsertOverride(
+  date: string,
+  capacity: number,
+  reason?: string | null,
+): Promise<{ ok: boolean; message?: string }> {
   await requireAdmin();
+  const cleanReason = typeof reason === 'string' ? reason.trim().slice(0, 200) : null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(capacity) || capacity < 0 || capacity > 10000) {
     return { ok: false, message: 'Valores inválidos.' };
   }
   try {
-    await upsertOverride(date, capacity);
+    await upsertOverride(date, capacity, cleanReason || null);
     revalidatePath('/admin/settings');
     return { ok: true };
   } catch {
