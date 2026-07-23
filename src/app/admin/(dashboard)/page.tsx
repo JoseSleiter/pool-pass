@@ -16,10 +16,5 @@ export default async function AdminHome({
     adminGetDaySummary(date),
   ]);
 
-  return (
-    <main className="mx-auto max-w-2xl space-y-4 p-4">
-      <h1 className="text-xl font-bold">Reservas del día</h1>
-      <AdminDayView date={date} rows={rows} summary={summary} />
-    </main>
-  );
+  return <AdminDayView date={date} rows={rows} summary={summary} />;
 }

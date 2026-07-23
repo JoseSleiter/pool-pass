@@ -24,7 +24,7 @@ export default async function CheckinPage({
     <main className="mx-auto max-w-md space-y-4 p-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Check-in</h1>
-        <Link href="/admin" className="text-sm underline">← Reservas</Link>
+        <Link href="/admin" className="cursor-pointer text-sm underline">← Reservas</Link>
       </div>
       {reservation ? (
         <CheckinCard reservation={reservation} today={todayCaracas()} onCheckIn={adminCheckIn} />

@@ -58,7 +58,7 @@ export default function AdminLogin() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-sky-100 to-sky-300 p-4">
       <div className="w-full max-w-sm">
-        <h1 className="mb-4 text-center text-xl font-extrabold text-sky-900">🌊 Admin — Pool Pass</h1>
+        <h1 className="mb-4 text-center text-xl font-extrabold text-sky-900">🌊 Villa Victoria — Admin</h1>
         <Suspense>
           <LoginForm />
         </Suspense>
