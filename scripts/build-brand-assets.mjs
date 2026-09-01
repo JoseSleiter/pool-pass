@@ -36,12 +36,30 @@ const MARK_WINDOW = { left: 988, top: 292, width: 327, height: 505 };
  *  the PNG ships base64-encoded inside a TypeScript module. */
 const EMAIL_LOGO_WIDTH = 360;
 
+/**
+ * PEDESTAL_TOP and MARK_WINDOW below are pixel coordinates hand-derived from
+ * this exact photo, so a different source silently produces garbage rather
+ * than failing. Guard the assumption.
+ *
+ * To re-derive them for a new source: open it in an image editor, read off the
+ * y where the marble pedestal's top edge crosses the logo (PEDESTAL_TOP), and
+ * the bounding box of the sun + figures + waves cluster (MARK_WINDOW).
+ */
+const SOURCE_SIZE = { width: 1315, height: 800 };
+
 async function cutout() {
   const { data, info } = await sharp(SOURCE)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });
   const { width, height, channels } = info;
+  if (width !== SOURCE_SIZE.width || height !== SOURCE_SIZE.height) {
+    throw new Error(
+      `source is ${width}x${height}, expected ${SOURCE_SIZE.width}x${SOURCE_SIZE.height}. ` +
+        'PEDESTAL_TOP and MARK_WINDOW are hand-derived pixel coordinates: re-derive ' +
+        'them for the new source, then update SOURCE_SIZE.'
+    );
+  }
   const count = width * height;
   const opaque = new Uint8Array(count).fill(1);
 
@@ -64,10 +82,10 @@ async function cutout() {
     opaque[p] = 0;
     const x = p % width;
     const y = (p / width) | 0;
-    if (x > 0) queue.push(p - 1);
-    if (x < width - 1) queue.push(p + 1);
-    if (y > 0) queue.push(p - width);
-    if (y < height - 1) queue.push(p + width);
+    if (x > 0 && !seen[p - 1]) queue.push(p - 1);
+    if (x < width - 1 && !seen[p + 1]) queue.push(p + 1);
+    if (y > 0 && !seen[p - width]) queue.push(p - width);
+    if (y < height - 1 && !seen[p + width]) queue.push(p + width);
   }
 
   // 2. Key the marble out of the bottom strip. Marble is warm (r >= b) and
@@ -110,6 +128,11 @@ function bounds({ data, width, height, channels }) {
       if (x > right) right = x;
     }
   }
+  if (right < 0) {
+    throw new Error(
+      'the cutout removed every pixel — BACKDROP_TOLERANCE or the pedestal key is too aggressive'
+    );
+  }
   return { left, top, width: right - left + 1, height: bottom - top + 1 };
 }
 
@@ -125,6 +148,38 @@ function squarePadding(window) {
     right: side - window.width - left,
     background: { r: 0, g: 0, b: 0, alpha: 0 },
   };
+}
+
+/**
+ * Minimal multi-resolution ICO writer.
+ *
+ * Browsers accept PNG payloads inside an ICO container, so each directory
+ * entry points at a whole PNG file. sharp cannot write .ico itself, and a
+ * dependency for 25 lines of header packing is not worth it.
+ */
+function icoBuffer(images) {
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0); // reserved
+  header.writeUInt16LE(1, 2); // type: icon
+  header.writeUInt16LE(images.length, 4);
+
+  const entries = [];
+  let offset = 6 + images.length * 16;
+  for (const { size, data } of images) {
+    const entry = Buffer.alloc(16);
+    entry.writeUInt8(size === 256 ? 0 : size, 0); // width (0 means 256)
+    entry.writeUInt8(size === 256 ? 0 : size, 1); // height
+    entry.writeUInt8(0, 2); // palette size
+    entry.writeUInt8(0, 3); // reserved
+    entry.writeUInt16LE(1, 4); // colour planes
+    entry.writeUInt16LE(32, 6); // bits per pixel
+    entry.writeUInt32LE(data.length, 8);
+    entry.writeUInt32LE(offset, 12);
+    entries.push(entry);
+    offset += data.length;
+  }
+
+  return Buffer.concat([header, ...entries, ...images.map((i) => i.data)]);
 }
 
 async function main() {
@@ -163,6 +218,21 @@ async function main() {
       .png({ compressionLevel: 9 })
       .toFile(path.join(ROOT, file));
   }
+
+  // Legacy /favicon.ico alongside the modern app icon: Next serves the two as
+  // separate routes, so dropping the .ico 404s anything that requests it directly.
+  const icoImages = [];
+  for (const size of [16, 32, 48]) {
+    icoImages.push({
+      size,
+      data: await sharp(markPng)
+        .resize(size, size, { fit: 'contain', background: '#ffffff' })
+        .flatten({ background: '#ffffff' })
+        .png({ compressionLevel: 9 })
+        .toBuffer(),
+    });
+  }
+  await writeFile(path.join(ROOT, 'src/app/favicon.ico'), icoBuffer(icoImages));
 
   // Email logo, flattened on white: some older clients paint PNG transparency
   // black. Ships as base64 inside a module because public/ is not reliably
