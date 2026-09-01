@@ -228,6 +228,11 @@ async function main() {
       data: await sharp(markPng)
         .resize(size, size, { fit: 'contain', background: '#ffffff' })
         .flatten({ background: '#ffffff' })
+        // ensureAlpha is load-bearing: flatten drops the alpha channel, and
+        // Turbopack's ICO decoder rejects non-RGBA payloads outright ("The PNG
+        // is not in RGBA format!"), failing the production build. ImageMagick
+        // accepts them, so this only shows up in `next build`.
+        .ensureAlpha()
         .png({ compressionLevel: 9 })
         .toBuffer(),
     });
