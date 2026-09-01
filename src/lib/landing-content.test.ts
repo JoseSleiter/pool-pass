@@ -6,7 +6,7 @@ describe('landing content', () => {
     expect(landingContent.amenities).toHaveLength(6);
     expect(landingContent.steps).toHaveLength(4);
   });
-  it('builds a digits-only wa.me link', () => {
-    expect(whatsappUrl()).toMatch(/^https:\/\/wa\.me\/\d+$/);
+  it('builds the club wa.me link', () => {
+    expect(whatsappUrl()).toBe('https://wa.me/584249196984');
   });
 });
