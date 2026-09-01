@@ -19,9 +19,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://pool-pass.vercel.app';
+
 export const metadata: Metadata = {
-  title: "Pool Pass",
-  description: "Reserva tu pase de piscina",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'Complejo Turístico Villa Victoria',
+    template: '%s · Complejo Turístico Villa Victoria',
+  },
+  description:
+    'Reserva tu pase de piscina en línea, paga con Pago Móvil y entra con tu código QR. Sin colas, sin efectivo.',
+  openGraph: {
+    type: 'website',
+    locale: 'es_VE',
+    siteName: 'Complejo Turístico Villa Victoria',
+    title: 'Complejo Turístico Villa Victoria',
+    description:
+      'Reserva tu pase de piscina en línea, paga con Pago Móvil y entra con tu código QR.',
+  },
 };
 
 export default function RootLayout({
