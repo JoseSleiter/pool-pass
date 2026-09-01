@@ -19,9 +19,40 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+/**
+ * metadataBase only resolves relative metadata URLs, so a bad value is not
+ * worth crashing the whole app for — new URL() throws at module scope in the
+ * root layout, which would take down every route.
+ */
+function siteUrl(): URL {
+  const configured = process.env.NEXT_PUBLIC_APP_URL;
+  const fallback = 'https://pool-pass.vercel.app';
+  try {
+    return new URL(configured || fallback);
+  } catch {
+    console.warn(
+      `NEXT_PUBLIC_APP_URL is not a valid URL (${configured}); falling back to ${fallback}`
+    );
+    return new URL(fallback);
+  }
+}
+
 export const metadata: Metadata = {
-  title: "Pool Pass",
-  description: "Reserva tu pase de piscina",
+  metadataBase: siteUrl(),
+  title: {
+    default: 'Complejo Turístico Villa Victoria',
+    template: '%s · Complejo Turístico Villa Victoria',
+  },
+  description:
+    'Reserva tu pase de piscina en línea, paga con Pago Móvil y entra con tu código QR. Sin colas, sin efectivo.',
+  openGraph: {
+    type: 'website',
+    locale: 'es_VE',
+    siteName: 'Complejo Turístico Villa Victoria',
+    title: 'Complejo Turístico Villa Victoria',
+    description:
+      'Reserva tu pase de piscina en línea, paga con Pago Móvil y entra con tu código QR.',
+  },
 };
 
 export default function RootLayout({

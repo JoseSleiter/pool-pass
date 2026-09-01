@@ -16,12 +16,17 @@ export const landingContent = {
     { icon: '🪑', text: 'Toldos y tumbonas' },
     { icon: '🚿', text: 'Duchas y vestuarios' },
   ],
+  // TODO: dirección y horario reales — estos son inventados y salen en el footer.
   address: 'Av. Principal, Caracas',
   hours: 'Mar–Dom · 9:00 am – 6:00 pm',
-  whatsapp: '+58 412 000 0000',
-  instagram: 'clublapiscina',
+  whatsapp: '+58 424-9196984',
+  instagram: 'finca_villa_victoria',
 } as const;
 
 export function whatsappUrl(): string {
   return `https://wa.me/${landingContent.whatsapp.replace(/\D/g, '')}`;
+}
+
+export function instagramUrl(): string {
+  return `https://instagram.com/${landingContent.instagram}`;
 }

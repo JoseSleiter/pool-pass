@@ -23,6 +23,7 @@ import { shortDateEs, visitLabelEs } from '@/lib/dates';
 import { paymentSchema } from '@/lib/schemas';
 import { VENEZUELAN_BANKS } from '@/lib/banks';
 import { whatsappUrl } from '@/lib/landing-content';
+import { Logo } from '@/components/brand/logo';
 import type { BookingResult } from '@/lib/booking/process';
 
 type Confirmed = Extract<BookingResult, { ok: true }>['reservation'];
@@ -377,6 +378,12 @@ export function BookingCard(props: {
           </p>
           <div className="mx-auto mt-5 max-w-sm overflow-hidden rounded-2xl bg-card ring-1 ring-border">
             <div className="bg-navy p-4 text-white">
+              {/* The margin belongs on this wrapper, not on Logo's className:
+                  that lands on the img inside the chip, padding the white
+                  pill instead of separating it from the label below. */}
+              <div className="mb-3">
+                <Logo variant="chip" className="h-9 w-auto" />
+              </div>
               <p className="text-xs uppercase tracking-[0.2em] text-teal-soft">Pase del día</p>
               <p data-testid="reservation-code" className="font-heading text-3xl font-semibold tracking-wider">{reservation.code}</p>
             </div>

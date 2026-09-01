@@ -31,7 +31,7 @@ describe('sendVoucherEmail', () => {
     vi.stubEnv('VOUCHER_FROM_EMAIL', 'pases@app.test');
   });
 
-  it('sends pre-rendered html containing the code and QR url via SMTP', async () => {
+  it('attaches the QR and the logo instead of linking them remotely', async () => {
     sendMailMock.mockResolvedValue({ rejected: [], accepted: ['ana@example.com'] });
 
     await sendVoucherEmail(voucher);
@@ -40,10 +40,28 @@ describe('sendVoucherEmail', () => {
     const arg = sendMailMock.mock.calls[0][0];
     expect(arg.from).toBe('pases@app.test');
     expect(arg.to).toBe('ana@example.com');
-    expect(arg.subject).toBe('Tu pase de piscina — PP-4F7K2');
-    expect(typeof arg.html).toBe('string');
     expect(arg.html).toContain('PP-4F7K2');
-    expect(arg.html).toContain('https://app.test/api/qr/uuid-1');
+    expect(arg.html).not.toContain('https://app.test/api/qr/uuid-1');
+
+    const cids = arg.attachments.map((a: { cid: string }) => a.cid);
+    expect(cids).toEqual(['voucher-qr', 'brand-logo']);
+    for (const a of arg.attachments) {
+      expect(a.contentType).toBe('image/png');
+      expect(Buffer.isBuffer(a.content)).toBe(true);
+      expect(a.content.length).toBeGreaterThan(0);
+    }
+    for (const a of arg.attachments) expect(arg.html).toContain(`cid:${a.cid}`);
+  });
+
+  it('puts the visit date in the subject and ships a plain-text part', async () => {
+    sendMailMock.mockResolvedValue({ rejected: [], accepted: ['ana@example.com'] });
+
+    await sendVoucherEmail(voucher);
+
+    const arg = sendMailMock.mock.calls[0][0];
+    expect(arg.subject).toBe('Tu pase para el Mar, 15 Ene 2030 — PP-4F7K2');
+    expect(arg.text).toContain('PP-4F7K2');
+    expect(arg.text).toContain('Ana Pérez');
   });
 
   it('falls back to SMTP_USER as the from address when VOUCHER_FROM_EMAIL is unset', async () => {

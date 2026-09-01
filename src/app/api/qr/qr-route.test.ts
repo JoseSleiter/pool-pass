@@ -1,9 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GET } from './[id]/route';
 
 const ID = '6f9619ff-8b86-d011-b42d-00c04fc964ff';
 
 describe('GET /api/qr/[id]', () => {
+  beforeEach(() => {
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://app.test');
+  });
+
   it('returns a PNG encoding the check-in URL', async () => {
     const res = await GET(new Request(`https://app.test/api/qr/${ID}`), {
       params: Promise.resolve({ id: ID }),

@@ -24,6 +24,7 @@ Admin: create users manually in Supabase Studio (Authentication → Add user, Au
 
 - Textos del landing (nombre del club, amenidades, dirección, horario, WhatsApp, Instagram): edita `src/lib/landing-content.ts`.
 - Fotos de la galería: coloca hasta 6 imágenes (`.jpg/.png/.webp/.avif`) en `public/gallery/`; sin fotos se muestran placeholders degradados.
+- Assets de marca (logo, iconos, favicon, logo del email): se **generan** desde `assets/brand-source/logo-cartel.jpg` con `npm run brand:assets`; no se editan a mano. El logo es un recorte de una foto del cartel físico, provisional hasta que exista el original vectorial del diseñador (ver `docs/superpowers/specs/2026-08-31-brand-identity-design.md`).
 
 ## Deploy checklist
 
