@@ -44,7 +44,7 @@ La generación vive en `scripts/build-brand-assets.mjs`, versionado, que lee de 
 | Salida | Qué es | Para qué |
 | --- | --- | --- |
 | `public/brand/logo.png` | Lockup completo, transparente, ~1240×720 | Header, footer, voucher |
-| `public/brand/logo-mark.png` | Recorte cuadrado del grupo de figuras + olas, 512×512 | Base de los iconos |
+| *(mark cuadrado, en memoria)* | Recorte cuadrado del grupo de figuras + olas — intermedio del script, **no se commitea** | Base de los iconos y del favicon |
 | `public/icon-192.png`, `public/icon-512.png` | El mark sobre fondo blanco | Iconos PWA (reemplazan los genéricos) |
 | `src/app/favicon.ico` | El mark, multi-resolución | Pestaña del navegador |
 | `src/lib/email/logo-data.ts` | El lockup optimizado, en base64 | Adjunto `cid:` del email |

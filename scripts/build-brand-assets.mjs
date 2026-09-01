@@ -37,7 +37,7 @@ const MARK_WINDOW = { left: 988, top: 292, width: 327, height: 505 };
 const EMAIL_LOGO_WIDTH = 360;
 
 /**
- * PEDESTAL_TOP and MARK_WINDOW below are pixel coordinates hand-derived from
+ * PEDESTAL_TOP and MARK_WINDOW above are pixel coordinates hand-derived from
  * this exact photo, so a different source silently produces garbage rather
  * than failing. Guard the assumption.
  *
@@ -195,22 +195,22 @@ async function main() {
     .toBuffer({ resolveWithObject: true });
   await writeFile(path.join(ROOT, 'public/brand/logo.png'), lockup.data);
 
-  // Square mark, transparent.
+  // Square mark, transparent. An in-memory intermediate only: every icon below
+  // is built from this buffer, so it is never written to disk.
   const markPng = await pipeline(cut)
     .extract(MARK_WINDOW)
     .extend(squarePadding(MARK_WINDOW))
     .png()
     .toBuffer();
-  await sharp(markPng)
-    .resize(512, 512)
-    .png({ compressionLevel: 9 })
-    .toFile(path.join(ROOT, 'public/brand/logo-mark.png'));
 
   // App icons: the mark on white. Next serves src/app/icon.png automatically.
+  // It stays at 192: browsers prefer it over favicon.ico for the tab, and a
+  // 512 copy would ship ~130 KB on every page load to draw a 16px icon. The
+  // manifest's 512 slot is covered by public/icon-512.png.
   for (const [file, size] of [
     ['public/icon-192.png', 192],
     ['public/icon-512.png', 512],
-    ['src/app/icon.png', 512],
+    ['src/app/icon.png', 192],
   ]) {
     await sharp(markPng)
       .resize(size, size, { fit: 'contain', background: '#ffffff' })
@@ -257,7 +257,6 @@ async function main() {
 
   const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
   console.log(`logo.png          ${lockup.info.width}x${lockup.info.height}  ${kb(lockup.data.length)}`);
-  console.log(`logo-mark.png     512x512`);
   console.log(`email logo        ${EMAIL_LOGO_WIDTH}px wide, ${kb(emailLogo.length)} raw / ${kb(emailLogo.toString('base64').length)} base64`);
   console.log(`\nPut these dimensions in src/components/brand/logo.tsx:`);
   console.log(`  LOGO_WIDTH = ${lockup.info.width}, LOGO_HEIGHT = ${lockup.info.height}`);

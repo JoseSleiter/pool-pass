@@ -19,10 +19,26 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pool-pass.vercel.app';
+/**
+ * metadataBase only resolves relative metadata URLs, so a bad value is not
+ * worth crashing the whole app for — new URL() throws at module scope in the
+ * root layout, which would take down every route.
+ */
+function siteUrl(): URL {
+  const configured = process.env.NEXT_PUBLIC_APP_URL;
+  const fallback = 'https://pool-pass.vercel.app';
+  try {
+    return new URL(configured || fallback);
+  } catch {
+    console.warn(
+      `NEXT_PUBLIC_APP_URL is not a valid URL (${configured}); falling back to ${fallback}`
+    );
+    return new URL(fallback);
+  }
+}
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: siteUrl(),
   title: {
     default: 'Complejo Turístico Villa Victoria',
     template: '%s · Complejo Turístico Villa Victoria',
