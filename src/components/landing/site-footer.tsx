@@ -1,4 +1,4 @@
-import { landingContent, whatsappUrl } from '@/lib/landing-content';
+import { landingContent, whatsappUrl, instagramUrl } from '@/lib/landing-content';
 import { Logo } from '@/components/brand/logo';
 
 export function SiteFooter() {
@@ -20,7 +20,7 @@ export function SiteFooter() {
           </a>
           {' · '}
           <a
-            href={`https://instagram.com/${landingContent.instagram}`}
+            href={instagramUrl()}
             className="hover:text-teal-soft"
           >
             @{landingContent.instagram}

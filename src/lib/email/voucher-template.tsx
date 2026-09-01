@@ -2,7 +2,8 @@ import {
   Html, Head, Body, Container, Section, Text, Heading, Img, Hr, Link,
 } from '@react-email/components';
 import { partyLabel } from '@/lib/party';
-import { landingContent, whatsappUrl } from '@/lib/landing-content';
+import { visitLabelEs } from '@/lib/dates';
+import { landingContent, whatsappUrl, instagramUrl } from '@/lib/landing-content';
 
 /**
  * Content IDs of the two inline attachments. The email carries its images
@@ -50,7 +51,7 @@ export function VoucherEmail(p: VoucherEmailProps) {
           <Text style={label}>Documento</Text>
           <Text style={value}>{`${p.idType}-${p.idNumber}`}</Text>
           <Text style={label}>Fecha de reserva</Text>
-          <Text style={value}>{p.date}</Text>
+          <Text style={value}>{visitLabelEs(p.date)}</Text>
           <Text style={label}>Asistentes</Text>
           <Text style={value}>{partyLabel(p.adults, p.children)}</Text>
           <Text style={label}>Total pagado</Text>
@@ -64,7 +65,7 @@ export function VoucherEmail(p: VoucherEmailProps) {
             {'¿Dudas? Escríbenos por '}
             <Link href={whatsappUrl()}>{`WhatsApp ${landingContent.whatsapp}`}</Link>
             {' · '}
-            <Link href={`https://instagram.com/${landingContent.instagram}`}>
+            <Link href={instagramUrl()}>
               {`@${landingContent.instagram}`}
             </Link>
           </Text>

@@ -26,3 +26,7 @@ export const landingContent = {
 export function whatsappUrl(): string {
   return `https://wa.me/${landingContent.whatsapp.replace(/\D/g, '')}`;
 }
+
+export function instagramUrl(): string {
+  return `https://instagram.com/${landingContent.instagram}`;
+}

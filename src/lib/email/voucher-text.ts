@@ -1,7 +1,7 @@
 import type { VoucherData } from '@/lib/booking/process';
 import { partyLabel } from '@/lib/party';
 import { visitLabelEs } from '@/lib/dates';
-import { landingContent, whatsappUrl } from '@/lib/landing-content';
+import { landingContent, whatsappUrl, instagramUrl } from '@/lib/landing-content';
 
 /**
  * Plain-text alternative to the HTML voucher.
@@ -24,5 +24,6 @@ export function voucherText(v: VoucherData): string {
     `Total pagado: $${v.totalUsd.toFixed(2)} / Bs. ${v.totalVes.toFixed(2)} (tasa BCV ${v.bcvRate.toFixed(2)})`,
     '',
     `Si el código QR no se ve, escríbenos: ${whatsappUrl()}`,
+    `Síguenos en Instagram: ${instagramUrl()}`,
   ].join('\n');
 }

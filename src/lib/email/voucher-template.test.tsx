@@ -12,7 +12,7 @@ describe('VoucherEmail', () => {
   it('renders every field the gate needs', async () => {
     const html = await render(<VoucherEmail {...props} />);
     for (const expected of [
-      'Ana Pérez', 'V-12345678', 'PP-4F7K2', '2030-01-15',
+      'Ana Pérez', 'V-12345678', 'PP-4F7K2', 'Mar, 15 Ene 2030',
       '2 adultos', '1 niño', '$35.00', 'Bs. 1277.50', '36.5',
     ]) {
       expect(html).toContain(expected);

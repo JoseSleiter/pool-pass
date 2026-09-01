@@ -50,6 +50,7 @@ describe('sendVoucherEmail', () => {
       expect(Buffer.isBuffer(a.content)).toBe(true);
       expect(a.content.length).toBeGreaterThan(0);
     }
+    for (const a of arg.attachments) expect(arg.html).toContain(`cid:${a.cid}`);
   });
 
   it('puts the visit date in the subject and ships a plain-text part', async () => {
