@@ -1,12 +1,21 @@
 import {
-  Html, Head, Body, Container, Section, Text, Heading, Img, Hr,
+  Html, Head, Body, Container, Section, Text, Heading, Img, Hr, Link,
 } from '@react-email/components';
 import { partyLabel } from '@/lib/party';
+import { landingContent, whatsappUrl } from '@/lib/landing-content';
+
+/**
+ * Content IDs of the two inline attachments. The email carries its images
+ * rather than linking them: Gmail blocks remote images by default for senders
+ * the recipient has not trusted, which would deliver the pass without its QR.
+ */
+export const QR_CID = 'voucher-qr';
+export const LOGO_CID = 'brand-logo';
 
 export interface VoucherEmailProps {
   firstName: string; lastName: string; idType: string; idNumber: string;
   code: string; date: string; adults: number; children: number;
-  totalUsd: number; totalVes: number; bcvRate: number; qrUrl: string;
+  totalUsd: number; totalVes: number; bcvRate: number;
 }
 
 const label = { color: '#6b7280', fontSize: '13px', margin: '0' } as const;
@@ -18,6 +27,14 @@ export function VoucherEmail(p: VoucherEmailProps) {
       <Head />
       <Body style={{ backgroundColor: '#f4f4f5', fontFamily: 'sans-serif' }}>
         <Container style={{ backgroundColor: '#ffffff', borderRadius: '8px', padding: '24px', maxWidth: '420px' }}>
+          <Section style={{ textAlign: 'center', marginBottom: '8px' }}>
+            <Img
+              src={`cid:${LOGO_CID}`}
+              alt={landingContent.clubName}
+              width="240"
+              style={{ margin: '0 auto' }}
+            />
+          </Section>
           <Heading as="h1" style={{ fontSize: '20px', color: '#111827' }}>
             {`Tu pase de piscina — ${p.code}`}
           </Heading>
@@ -25,7 +42,7 @@ export function VoucherEmail(p: VoucherEmailProps) {
             Presenta este correo junto a tu cédula en la entrada.
           </Text>
           <Section style={{ textAlign: 'center', margin: '16px 0' }}>
-            <Img src={p.qrUrl} alt={`Código QR ${p.code}`} width="180" height="180" style={{ margin: '0 auto' }} />
+            <Img src={`cid:${QR_CID}`} alt={`Código QR ${p.code}`} width="180" height="180" style={{ margin: '0 auto' }} />
           </Section>
           <Hr />
           <Text style={label}>Nombre</Text>
@@ -42,6 +59,15 @@ export function VoucherEmail(p: VoucherEmailProps) {
           </Text>
           <Text style={label}>Reserva</Text>
           <Text style={value}>{p.code}</Text>
+          <Hr />
+          <Text style={{ color: '#6b7280', fontSize: '13px', margin: '12px 0 0' }}>
+            {'¿Dudas? Escríbenos por '}
+            <Link href={whatsappUrl()}>{`WhatsApp ${landingContent.whatsapp}`}</Link>
+            {' · '}
+            <Link href={`https://instagram.com/${landingContent.instagram}`}>
+              {`@${landingContent.instagram}`}
+            </Link>
+          </Text>
         </Container>
       </Body>
     </Html>
