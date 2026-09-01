@@ -1,16 +1,13 @@
 import Link from 'next/link';
-import { landingContent } from '@/lib/landing-content';
+import { Logo } from '@/components/brand/logo';
 
 /** Transparent nav bar that sits on top of the hero gradient (navy). */
 export function SiteHeader() {
   return (
     <header className="bg-navy">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
-        <Link
-          href="/"
-          className="font-heading text-lg font-semibold uppercase tracking-[0.18em] text-white"
-        >
-          {landingContent.clubName}
+        <Link href="/" aria-label="Inicio">
+          <Logo variant="chip" className="h-10 w-auto sm:h-11" priority />
         </Link>
         <nav className="flex items-center gap-7 text-sm font-medium text-white/85">
           <Link href="/#como-funciona" className="hidden transition-colors hover:text-teal-soft sm:inline">
