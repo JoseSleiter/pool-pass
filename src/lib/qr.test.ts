@@ -19,4 +19,9 @@ describe('qr', () => {
     );
     expect(png.length).toBeGreaterThan(100);
   });
+
+  it('refuses to build a url when the app url is not configured', () => {
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', '');
+    expect(() => checkInUrl(ID)).toThrow(/NEXT_PUBLIC_APP_URL/);
+  });
 });

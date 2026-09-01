@@ -2,7 +2,13 @@ import QRCode from 'qrcode';
 
 /** Absolute check-in URL encoded in a reservation's QR code. */
 export function checkInUrl(reservationId: string): string {
-  return `${process.env.NEXT_PUBLIC_APP_URL}/admin/checkin/${reservationId}`;
+  const base = process.env.NEXT_PUBLIC_APP_URL;
+  if (!base) {
+    // Without this the QR encodes "undefined/admin/checkin/..." — a pass that
+    // scans fine and leads nowhere, discovered only at the gate.
+    throw new Error('NEXT_PUBLIC_APP_URL is not set: cannot build a check-in URL');
+  }
+  return `${base}/admin/checkin/${reservationId}`;
 }
 
 /**
