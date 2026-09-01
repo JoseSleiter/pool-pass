@@ -5,7 +5,9 @@ import { Logo } from '@/components/brand/logo';
 export function SiteHeader() {
   return (
     <header className="bg-navy">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
+      {/* py-4, not py-6: the logo chip is taller than the text wordmark it
+          replaced, and py-6 pushed the header to ~104px over the hero. */}
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
         <Link href="/" aria-label="Inicio">
           <Logo variant="chip" className="h-10 w-auto sm:h-11" priority />
         </Link>
