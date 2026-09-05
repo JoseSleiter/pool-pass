@@ -16,8 +16,8 @@ export const landingContent = {
     { icon: '🪑', text: 'Toldos y tumbonas' },
     { icon: '🚿', text: 'Duchas y vestuarios' },
   ],
-  // TODO: dirección y horario reales — estos son inventados y salen en el footer.
-  address: 'Av. Principal, Caracas',
+  address: 'Tumeremo, Bolívar, Venezuela',
+  // TODO: horario real — este es inventado y sale en el footer de cada página.
   hours: 'Mar–Dom · 9:00 am – 6:00 pm',
   whatsapp: '+58 424-9196984',
   instagram: 'finca_villa_victoria',
