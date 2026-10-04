@@ -4,7 +4,8 @@ import { paginate } from '@/lib/db/paginate';
 export type AuditAction =
   | 'reservation.check_in' | 'reservation.resend_voucher'
   | 'settings.update' | 'override.upsert' | 'override.delete'
-  | 'role.upsert';
+  | 'role.upsert'
+  | 'bcv.refresh';
 
 export interface AuditRow {
   id: number;
