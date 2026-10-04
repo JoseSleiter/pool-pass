@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { occupancyLevel, occupancyPercent } from './day-metrics';
+import {
+  isIsoDate, occupancyLevel, occupancyPercent, parseDayParam, shiftIsoDate,
+} from './day-metrics';
 
 describe('occupancyPercent', () => {
   it('is the rounded whole percent of capacity in use', () => {
@@ -30,5 +32,42 @@ describe('occupancyLevel (roadmap §2 bands)', () => {
     [130, 'peak'],
   ])('%i %% → %s', (pct, level) => {
     expect(occupancyLevel(pct)).toBe(level);
+  });
+});
+
+describe('isIsoDate', () => {
+  it('accepts real calendar dates in YYYY-MM-DD', () => {
+    expect(isIsoDate('2030-01-15')).toBe(true);
+    expect(isIsoDate('2028-02-29')).toBe(true); // leap year
+  });
+
+  it('rejects malformed or impossible dates', () => {
+    expect(isIsoDate('')).toBe(false);
+    expect(isIsoDate('hoy')).toBe(false);
+    expect(isIsoDate('2030-1-15')).toBe(false);
+    expect(isIsoDate('2030-02-31')).toBe(false);
+    expect(isIsoDate('2029-02-29')).toBe(false);
+    expect(isIsoDate('2030-01-15T00:00:00Z')).toBe(false);
+  });
+});
+
+describe('shiftIsoDate', () => {
+  it('moves by whole days across month and year boundaries', () => {
+    expect(shiftIsoDate('2030-01-15', -1)).toBe('2030-01-14');
+    expect(shiftIsoDate('2030-01-15', 1)).toBe('2030-01-16');
+    expect(shiftIsoDate('2030-03-01', -1)).toBe('2030-02-28');
+    expect(shiftIsoDate('2030-12-31', 1)).toBe('2031-01-01');
+  });
+});
+
+describe('parseDayParam', () => {
+  it('keeps a valid ?date= value', () => {
+    expect(parseDayParam('2030-01-15', '2030-06-01')).toBe('2030-01-15');
+  });
+
+  it('falls back to today for missing, invalid or repeated params', () => {
+    expect(parseDayParam(undefined, '2030-06-01')).toBe('2030-06-01');
+    expect(parseDayParam('2030-02-31', '2030-06-01')).toBe('2030-06-01');
+    expect(parseDayParam(['2030-01-15', '2030-01-16'], '2030-06-01')).toBe('2030-06-01');
   });
 });

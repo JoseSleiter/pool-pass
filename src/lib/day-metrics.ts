@@ -19,3 +19,24 @@ export function occupancyLevel(percent: number): OccupancyLevel {
   if (percent >= OCCUPANCY_HIGH_FROM) return 'high';
   return 'normal';
 }
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** true for a real calendar date written as YYYY-MM-DD (rejects 2030-02-31). */
+export function isIsoDate(value: string): boolean {
+  if (!ISO_DATE.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+/** YYYY-MM-DD moved by `days` whole days (UTC math: no DST or timezone drift). */
+export function shiftIsoDate(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** The admin home's `?date=` param, or `today` when it is missing or not a real date. */
+export function parseDayParam(raw: unknown, today: string): string {
+  return typeof raw === 'string' && isIsoDate(raw) ? raw : today;
+}
