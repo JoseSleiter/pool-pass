@@ -1,4 +1,8 @@
+'use client';
+
 import { Minus, Plus } from 'lucide-react';
+import { useT } from '@/lib/i18n/provider';
+import { interpolate } from '@/lib/i18n/format';
 
 export function CountRow(props: {
   label: string;
@@ -7,6 +11,8 @@ export function CountRow(props: {
   onChange: (v: number) => void;
   testId: string;
 }) {
+  const t = useT();
+  const label = props.label.toLowerCase();
   return (
     <div className="flex items-center justify-between rounded-xl bg-card px-4 py-3">
       <div>
@@ -16,7 +22,7 @@ export function CountRow(props: {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          aria-label={`Disminuir ${props.label.toLowerCase()}`}
+          aria-label={interpolate(t.booking.decrease, { label })}
           disabled={props.value <= 0}
           onClick={() => props.onChange(Math.max(props.value - 1, 0))}
           className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border text-navy disabled:cursor-not-allowed disabled:opacity-40"
@@ -26,7 +32,7 @@ export function CountRow(props: {
         <span data-testid={props.testId} className="w-6 text-center font-heading text-lg font-semibold">{props.value}</span>
         <button
           type="button"
-          aria-label={`Aumentar ${props.label.toLowerCase()}`}
+          aria-label={interpolate(t.booking.increase, { label })}
           disabled={props.value >= 20}
           onClick={() => props.onChange(Math.min(props.value + 1, 20))}
           className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-border text-navy disabled:cursor-not-allowed disabled:opacity-40"
