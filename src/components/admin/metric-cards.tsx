@@ -1,10 +1,10 @@
 'use client';
 
 import { useId } from 'react';
-import { CalendarX2, Users, type LucideIcon } from 'lucide-react';
+import { CalendarX2, DoorOpen, Users, type LucideIcon } from 'lucide-react';
 import type { DaySummary } from '@/app/admin/actions';
 import {
-  occupancyLevel, occupancyPercent, type DayMetrics, type OccupancyLevel,
+  hourLabel, hourlySeries, occupancyLevel, occupancyPercent, type DayMetrics, type OccupancyLevel,
 } from '@/lib/day-metrics';
 import { cn } from '@/lib/utils';
 
@@ -135,6 +135,60 @@ export function OccupancyCard(props: { metrics: DayMetrics }) {
         <p className="mt-auto pt-3 text-xs text-muted-foreground">
           {`Capacidad especial (normal: ${defaultCapacity})${override.reason ? ` · ${override.reason}` : ''}`}
         </p>
+      )}
+    </MetricCard>
+  );
+}
+
+/** Tiny inline bar sparkline (no chart lib). Bars are decorative; each hour has sr-only text. */
+function HourlyBars(props: { byHour: DayMetrics['checkinsByHour'] }) {
+  const series = hourlySeries(props.byHour);
+  const max = Math.max(...series.map((b) => b.people));
+  const peak = series.find((b) => b.people === max)!;
+  const first = series[0];
+  const last = series[series.length - 1];
+  return (
+    <div className="mt-auto pt-3">
+      <ul role="list" aria-label="Ingresos por hora (hora de Caracas)" className="flex h-10 items-end gap-0.5">
+        {series.map((b) => (
+          <li key={b.hour} className="flex h-full flex-1 items-end" title={`${hourLabel(b.hour)} · ${plural(b.people, 'persona', 'personas')}`}>
+            <span
+              data-testid="hour-bar"
+              aria-hidden
+              className={cn('w-full rounded-sm', b.people > 0 ? 'bg-teal' : 'bg-slate-200')}
+              style={{ height: b.people > 0 ? `${Math.max(10, Math.round((b.people / max) * 100))}%` : '2px' }}
+            />
+            <span className="sr-only">{`${hourLabel(b.hour)}: ${plural(b.people, 'persona', 'personas')}`}</span>
+          </li>
+        ))}
+      </ul>
+      <div aria-hidden className="mt-1 flex justify-between text-[10px] text-muted-foreground">
+        <span>{hourLabel(first.hour)}</span>
+        {last.hour !== first.hour && <span>{hourLabel(last.hour)}</span>}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {`Hora pico: ${hourLabel(peak.hour)} (${plural(peak.people, 'persona', 'personas')})`}
+      </p>
+    </div>
+  );
+}
+
+export function CheckinsCard(props: { metrics: DayMetrics }) {
+  const { checkedInPeople, confirmedPeople, checkedInParties, checkinsByHour } = props.metrics;
+  const ratio = confirmedPeople > 0 ? Math.round((checkedInPeople / confirmedPeople) * 100) : 0;
+  return (
+    <MetricCard title="Check-ins" icon={DoorOpen}>
+      <p className="text-2xl font-extrabold text-navy">
+        {checkedInPeople}
+        <span className="text-sm font-normal text-muted-foreground"> / {confirmedPeople} personas</span>
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {`${ratio} % ya ingresó · ${plural(checkedInParties, 'grupo', 'grupos')}`}
+      </p>
+      {checkinsByHour.length === 0 ? (
+        <p className="mt-auto pt-3 text-xs text-muted-foreground">Aún no hay ingresos registrados.</p>
+      ) : (
+        <HourlyBars byHour={checkinsByHour} />
       )}
     </MetricCard>
   );

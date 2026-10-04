@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
-import { MetricGrid, OccupancyCard } from './metric-cards';
+import { CheckinsCard, MetricGrid, OccupancyCard } from './metric-cards';
 import type { DaySummary } from '@/app/admin/actions';
 import type { DayMetrics } from '@/lib/day-metrics';
 
@@ -86,6 +86,49 @@ describe('OccupancyCard', () => {
     expect(within(card).getByRole('meter')).toHaveAttribute('aria-valuemax', '50');
     expect(within(card).getByText('50 %')).toBeInTheDocument();
     expect(within(card).getByText('Capacidad especial (normal: 100) · Evento privado')).toBeInTheDocument();
+  });
+});
+
+describe('CheckinsCard', () => {
+  it('shows checked-in vs confirmed people, the ratio and the parties', () => {
+    render(<CheckinsCard metrics={m({ confirmedPeople: 8, checkedInPeople: 4, checkedInParties: 2 })} />);
+    const card = screen.getByRole('region', { name: 'Check-ins' });
+    expect(card).toHaveTextContent('4 / 8 personas');
+    expect(card).toHaveTextContent('50 % ya ingresó · 2 grupos');
+  });
+
+  it('uses 0 % and singular wording without dividing by zero', () => {
+    render(<CheckinsCard metrics={m({ confirmedPeople: 0, checkedInPeople: 0, checkedInParties: 1 })} />);
+    expect(screen.getByRole('region', { name: 'Check-ins' })).toHaveTextContent('0 % ya ingresó · 1 grupo');
+  });
+
+  it('shows an empty state instead of a chart when nobody has checked in', () => {
+    render(<CheckinsCard metrics={m({ checkinsByHour: [] })} />);
+    const card = screen.getByRole('region', { name: 'Check-ins' });
+    expect(within(card).getByText('Aún no hay ingresos registrados.')).toBeInTheDocument();
+    expect(within(card).queryByRole('list')).toBeNull();
+  });
+
+  it('draws one bar per hour (gaps filled), scaled to the busiest hour, with text for screen readers', () => {
+    render(<CheckinsCard metrics={m({
+      checkinsByHour: [{ hour: 9, people: 3 }, { hour: 11, people: 5 }],
+    })} />);
+    const card = screen.getByRole('region', { name: 'Check-ins' });
+    const list = within(card).getByRole('list', { name: 'Ingresos por hora (hora de Caracas)' });
+    const items = within(list).getAllByRole('listitem');
+    expect(items).toHaveLength(3);
+    expect(within(items[0]).getByText('09:00: 3 personas')).toBeInTheDocument();
+    expect(within(items[1]).getByText('10:00: 0 personas')).toBeInTheDocument();
+    expect(within(items[2]).getByText('11:00: 5 personas')).toBeInTheDocument();
+    expect(within(items[0]).getByTestId('hour-bar')).toHaveStyle({ height: '60%' });
+    expect(within(items[2]).getByTestId('hour-bar')).toHaveStyle({ height: '100%' });
+    expect(within(card).getByText('Hora pico: 11:00 (5 personas)')).toBeInTheDocument();
+  });
+
+  it('uses singular wording for a single person in an hour', () => {
+    render(<CheckinsCard metrics={m({ checkinsByHour: [{ hour: 14, people: 1 }] })} />);
+    expect(screen.getByText('14:00: 1 persona')).toBeInTheDocument();
+    expect(screen.getByText('Hora pico: 14:00 (1 persona)')).toBeInTheDocument();
   });
 });
 
