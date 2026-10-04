@@ -48,6 +48,7 @@ import {
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
 import { getAdminRole } from '@/lib/db/admin-roles';
+import { logAudit } from '@/lib/audit';
 
 // Default for every test: an allowlisted email with no admin_roles row = owner.
 // (vi.clearAllMocks only clears call history, so a test that switches the role
@@ -162,6 +163,7 @@ describe('admin settings validation (authorized user)', () => {
   });
 
   it('adminUpsertOverride forwards reason to db', async () => {
+    vi.mocked(upsertOverride).mockResolvedValue(undefined);
     const res = await adminUpsertOverride('2030-02-01', 25, 'Mantenimiento');
     expect(res.ok).toBe(true);
     expect(upsertOverride).toHaveBeenCalledWith('2030-02-01', 25, 'Mantenimiento');
@@ -247,5 +249,106 @@ describe('owner-only actions reject an operator', () => {
   it('an operator can still read the day list', async () => {
     vi.mocked(listReservationsByDate).mockResolvedValue([]);
     await expect(adminListReservations('2030-01-15')).resolves.toEqual([]);
+  });
+});
+
+describe('admin write actions record an audit entry on success only', () => {
+  const ID = '6f9619ff-8b86-d011-b42d-00c04fc964ff';
+  const reservation = {
+    id: ID, code: 'PP-ABCDE', date: '2030-01-15', first_name: 'Ana', last_name: 'Pérez',
+    email: 'ana@example.com', id_type: 'V', id_number: '123', adults: 2, children: 1,
+    total_usd: 35, bcv_rate: 36.5, total_ves: 1277.5, status: 'confirmed',
+    payment_ref: 'REF-1', expires_at: null, checked_in_at: null, created_at: '',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = { id: 'admin-1', email: ADMIN_EMAIL };
+  });
+
+  it('adminCheckIn logs reservation.check_in', async () => {
+    vi.mocked(checkInReservation).mockResolvedValue(undefined);
+    await expect(adminCheckIn(ID)).resolves.toEqual({ ok: true });
+    expect(logAudit).toHaveBeenCalledWith({ actor: ADMIN_EMAIL, action: 'reservation.check_in', target: ID });
+  });
+
+  it('adminCheckIn does not log when the check-in fails', async () => {
+    vi.mocked(checkInReservation).mockRejectedValue(new Error('reservation not in expected status'));
+    const res = await adminCheckIn(ID);
+    expect(res.ok).toBe(false);
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it('adminResendVoucher logs reservation.resend_voucher with the code', async () => {
+    vi.mocked(getReservation).mockResolvedValue(reservation as never);
+    vi.mocked(sendVoucherEmail).mockResolvedValue(undefined);
+    await expect(adminResendVoucher(ID)).resolves.toEqual({ ok: true });
+    expect(logAudit).toHaveBeenCalledWith({
+      actor: ADMIN_EMAIL, action: 'reservation.resend_voucher', target: ID, details: { code: 'PP-ABCDE' },
+    });
+  });
+
+  it('adminResendVoucher does not log when the email fails', async () => {
+    vi.mocked(getReservation).mockResolvedValue(reservation as never);
+    vi.mocked(sendVoucherEmail).mockRejectedValue(new Error('smtp down'));
+    const res = await adminResendVoucher(ID);
+    expect(res.ok).toBe(false);
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it('adminResendVoucher does not log for a non-resendable reservation', async () => {
+    vi.mocked(getReservation).mockResolvedValue({ ...reservation, status: 'pending_payment' } as never);
+    const res = await adminResendVoucher(ID);
+    expect(res.ok).toBe(false);
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it('adminUpdateSettings logs settings.update with the saved values', async () => {
+    vi.mocked(updateSettings).mockResolvedValue(undefined);
+    const values = { daily_capacity: 80, adult_price_usd: 15, child_price_usd: 5 };
+    await expect(adminUpdateSettings(values)).resolves.toEqual({ ok: true });
+    expect(logAudit).toHaveBeenCalledWith({ actor: ADMIN_EMAIL, action: 'settings.update', details: values });
+  });
+
+  it('adminUpdateSettings does not log when the save fails', async () => {
+    vi.mocked(updateSettings).mockRejectedValue(new Error('db down'));
+    const res = await adminUpdateSettings({ daily_capacity: 80, adult_price_usd: 15, child_price_usd: 5 });
+    expect(res.ok).toBe(false);
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it('adminUpdateSettings does not log invalid input', async () => {
+    const res = await adminUpdateSettings({ daily_capacity: -1, adult_price_usd: 15, child_price_usd: 5 });
+    expect(res.ok).toBe(false);
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it('adminUpsertOverride logs override.upsert with capacity and reason', async () => {
+    vi.mocked(upsertOverride).mockResolvedValue(undefined);
+    await expect(adminUpsertOverride('2030-02-01', 25, '  Mantenimiento ')).resolves.toEqual({ ok: true });
+    expect(logAudit).toHaveBeenCalledWith({
+      actor: ADMIN_EMAIL, action: 'override.upsert', target: '2030-02-01',
+      details: { capacity: 25, reason: 'Mantenimiento' },
+    });
+  });
+
+  it('adminUpsertOverride does not log when the save fails', async () => {
+    vi.mocked(upsertOverride).mockRejectedValue(new Error('db down'));
+    const res = await adminUpsertOverride('2030-02-01', 25);
+    expect(res.ok).toBe(false);
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it('adminDeleteOverride logs override.delete', async () => {
+    vi.mocked(deleteOverride).mockResolvedValue(undefined);
+    await expect(adminDeleteOverride('2030-02-01')).resolves.toEqual({ ok: true });
+    expect(logAudit).toHaveBeenCalledWith({ actor: ADMIN_EMAIL, action: 'override.delete', target: '2030-02-01' });
+  });
+
+  it('adminDeleteOverride does not log when the delete fails', async () => {
+    vi.mocked(deleteOverride).mockRejectedValue(new Error('db down'));
+    const res = await adminDeleteOverride('2030-02-01');
+    expect(res.ok).toBe(false);
+    expect(logAudit).not.toHaveBeenCalled();
   });
 });

@@ -9,6 +9,7 @@ import {
   type ReservationRow,
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
+import { logAudit } from '@/lib/audit';
 
 export interface DaySummary {
   capacity: number;
@@ -46,19 +47,21 @@ export async function adminGetDaySummary(date: string): Promise<DaySummary> {
 }
 
 export async function adminCheckIn(id: string): Promise<{ ok: boolean; message?: string }> {
-  await requireAdmin();
+  const me = await requireAdmin();
   try {
     await checkInReservation(id);
-    revalidatePath('/admin');
-    return { ok: true };
   } catch {
     // status guard: reservation not confirmed (already checked in, pending, failed…)
     return { ok: false, message: 'La reserva no está en estado confirmado.' };
   }
+  await logAudit({ actor: me.email, action: 'reservation.check_in', target: id });
+  revalidatePath('/admin');
+  return { ok: true };
 }
 
 export async function adminResendVoucher(id: string): Promise<{ ok: boolean; message?: string }> {
-  await requireAdmin();
+  const me = await requireAdmin();
+  let code: string;
   try {
     const r = await getReservation(id);
     if (!r || !['confirmed', 'checked_in'].includes(r.status)) {
@@ -71,10 +74,12 @@ export async function adminResendVoucher(id: string): Promise<{ ok: boolean; mes
       date: r.date, adults: r.adults, children: r.children,
       totalUsd: Number(r.total_usd), totalVes: Number(r.total_ves ?? 0), bcvRate: Number(r.bcv_rate ?? 0),
     });
-    return { ok: true };
+    code = r.code;
   } catch {
     return { ok: false, message: 'No se pudo reenviar el correo.' };
   }
+  await logAudit({ actor: me.email, action: 'reservation.resend_voucher', target: id, details: { code } });
+  return { ok: true };
 }
 
 const settingsSchema = z.object({
@@ -90,16 +95,17 @@ export async function adminGetSettings() {
 }
 
 export async function adminUpdateSettings(raw: unknown): Promise<{ ok: boolean; message?: string }> {
-  await requireAdmin({ role: 'owner' });
+  const me = await requireAdmin({ role: 'owner' });
   const parsed = settingsSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, message: 'Valores inválidos.' };
   try {
     await updateSettings(parsed.data);
-    revalidatePath('/admin/settings');
-    return { ok: true };
   } catch {
     return { ok: false, message: 'No se pudo guardar.' };
   }
+  await logAudit({ actor: me.email, action: 'settings.update', details: parsed.data });
+  revalidatePath('/admin/settings');
+  return { ok: true };
 }
 
 export async function adminUpsertOverride(
@@ -107,28 +113,33 @@ export async function adminUpsertOverride(
   capacity: number,
   reason?: string | null,
 ): Promise<{ ok: boolean; message?: string }> {
-  await requireAdmin({ role: 'owner' });
+  const me = await requireAdmin({ role: 'owner' });
   const cleanReason = typeof reason === 'string' ? reason.trim().slice(0, 200) : null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(capacity) || capacity < 0 || capacity > 10000) {
     return { ok: false, message: 'Valores inválidos.' };
   }
   try {
     await upsertOverride(date, capacity, cleanReason || null);
-    revalidatePath('/admin/settings');
-    return { ok: true };
   } catch {
     return { ok: false, message: 'No se pudo guardar.' };
   }
+  await logAudit({
+    actor: me.email, action: 'override.upsert', target: date,
+    details: { capacity, reason: cleanReason || null },
+  });
+  revalidatePath('/admin/settings');
+  return { ok: true };
 }
 
 export async function adminDeleteOverride(date: string): Promise<{ ok: boolean; message?: string }> {
-  await requireAdmin({ role: 'owner' });
+  const me = await requireAdmin({ role: 'owner' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, message: 'Fecha inválida.' };
   try {
     await deleteOverride(date);
-    revalidatePath('/admin/settings');
-    return { ok: true };
   } catch {
     return { ok: false, message: 'No se pudo eliminar.' };
   }
+  await logAudit({ actor: me.email, action: 'override.delete', target: date });
+  revalidatePath('/admin/settings');
+  return { ok: true };
 }
