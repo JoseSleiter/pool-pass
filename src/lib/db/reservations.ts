@@ -167,6 +167,20 @@ export async function searchReservations(
   return { rows: (data ?? []) as unknown as ReservationRow[], total: count ?? 0 };
 }
 
+/** Total people (adults + children) across reservations in [dateFrom, dateTo] with the given statuses. */
+export async function sumPartySize(p: {
+  dateFrom: string; dateTo: string; statuses: ReservationRow['status'][];
+}): Promise<number> {
+  const { data, error } = await serviceClient()
+    .from('reservations')
+    .select('adults, children')
+    .gte('date', p.dateFrom)
+    .lte('date', p.dateTo)
+    .in('status', p.statuses);
+  if (error) throw new Error(error.message);
+  return data.reduce((sum, r) => sum + r.adults + r.children, 0);
+}
+
 export async function getSettings(): Promise<SettingsRow> {
   const { data, error } = await serviceClient()
     .from('settings').select('*').eq('id', 1).single();

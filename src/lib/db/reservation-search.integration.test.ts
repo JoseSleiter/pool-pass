@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
-import { searchReservations, type ReservationRow, type ReservationQuery } from './reservations';
+import { searchReservations, sumPartySize, type ReservationRow, type ReservationQuery } from './reservations';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -182,5 +182,20 @@ describe('searchReservations', () => {
       dateFrom: PAGE_DATE, dateTo: PAGE_DATE, page: 3, pageSize: 10,
     });
     expect(res).toEqual({ rows: [], total: 12 });
+  });
+});
+
+describe('sumPartySize', () => {
+  it('sums adults + children for the given statuses in an inclusive date range', async () => {
+    // ZQ001 (1, confirmed) + ZQ002 (3, checked_in); ZQ003 is pending -> excluded
+    await expect(sumPartySize({
+      dateFrom: '2031-04-05', dateTo: '2031-04-12', statuses: ['confirmed', 'checked_in'],
+    })).resolves.toBe(4);
+  });
+
+  it('returns 0 when nothing matches', async () => {
+    await expect(sumPartySize({
+      dateFrom: '2031-04-21', dateTo: '2031-04-22', statuses: ['confirmed', 'checked_in'],
+    })).resolves.toBe(0);
   });
 });
