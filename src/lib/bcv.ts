@@ -5,6 +5,8 @@ export interface RateDeps {
   fetchRate: () => Promise<number>;
   readCache: () => Promise<{ rate: number; fetchedAt: number } | null>;
   writeCache: (rate: number, fetchedAt: number) => Promise<void>;
+  /** Optional: append the freshly fetched rate to bcv_rate_history. */
+  recordHistory?: (rate: number, fetchedAt: number) => Promise<void>;
   now: () => number;
 }
 
@@ -21,6 +23,13 @@ export async function getBcvRate(deps: RateDeps): Promise<number | null> {
       await deps.writeCache(rate, now);
     } catch (e) {
       console.error('bcv: cache write failed (rate still served):', e);
+    }
+    if (deps.recordHistory) {
+      try {
+        await deps.recordHistory(rate, now);
+      } catch (e) {
+        console.error('bcv: history write failed (rate still served):', e);
+      }
     }
     return rate;
   } catch (e) {
