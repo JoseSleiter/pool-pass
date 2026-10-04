@@ -81,6 +81,12 @@ export const es = {
       pay: 'Paga con C2P',
       voucher: 'Recibe tu voucher',
     },
+    details: {
+      date: 'Escoge un día con cupo disponible en el calendario.',
+      group: 'Indica cuántos adultos y niños vienen contigo.',
+      pay: 'Paga en bolívares desde tu banco con Pago Móvil C2P.',
+      voucher: 'Te llega por email con el QR que muestras en la entrada.',
+    },
   },
   finalCta: {
     heading: 'Listo para disfrutar la piscina',

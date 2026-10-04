@@ -75,6 +75,12 @@ export const en: Dictionary = {
       pay: 'Pay with C2P',
       voucher: 'Get your voucher',
     },
+    details: {
+      date: 'Choose a day with open spots on the calendar.',
+      group: 'Tell us how many adults and kids are coming with you.',
+      pay: 'Pay in bolívares from your bank with Pago Móvil C2P.',
+      voucher: 'It arrives by email with the QR you show at the entrance.',
+    },
   },
   finalCta: {
     heading: 'Ready to enjoy the pool',

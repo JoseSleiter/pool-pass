@@ -1,5 +1,16 @@
 import Link from 'next/link';
-import { CalendarCheck, ShieldCheck, Mail, Ticket, ArrowRight } from 'lucide-react';
+import {
+  ArrowRight,
+  Calendar,
+  CalendarCheck,
+  CreditCard,
+  Mail,
+  QrCode,
+  ShieldCheck,
+  Ticket,
+  Users,
+} from 'lucide-react';
+import { RevealOnScroll } from '@/components/landing/reveal-on-scroll';
 import type { Dictionary } from '@/lib/i18n/types';
 
 const features = [
@@ -8,11 +19,20 @@ const features = [
   { key: 'email', icon: Mail },
 ] as const;
 
-const stepKeys = ['date', 'group', 'pay', 'voucher'] as const;
+/** The booking trail, in order. Keys point into `t.howItWorks.steps` / `.details`. */
+const steps = [
+  { key: 'date', icon: Calendar },
+  { key: 'group', icon: Users },
+  { key: 'pay', icon: CreditCard },
+  { key: 'voucher', icon: QrCode },
+] as const;
+
+/** Delay between consecutive steps of the reveal, in ms. */
+const STEP_STAGGER_MS = 120;
 
 export function Features({ t }: { t: Dictionary }) {
   return (
-    <section id="como-funciona" className="bg-background px-6 py-20">
+    <section className="bg-background px-6 py-20">
       <div className="mx-auto max-w-5xl">
         <h2 className="mx-auto max-w-xl text-center font-heading text-4xl font-semibold leading-tight text-navy">
           {t.features.headingLine1}
@@ -36,21 +56,56 @@ export function Features({ t }: { t: Dictionary }) {
   );
 }
 
+/**
+ * "#como-funciona": four steps joined by a teal line — vertical on the left
+ * on mobile, horizontal between the icons from `md`. Each step fades up as
+ * it scrolls in (RevealOnScroll); connectors stay static so the trail reads
+ * even if JS never runs.
+ */
 export function HowItWorks({ t }: { t: Dictionary }) {
   return (
-    <section className="bg-navy px-6 py-20">
+    <section
+      id="como-funciona"
+      aria-labelledby="como-funciona-heading"
+      className="bg-navy px-6 py-20"
+    >
       <div className="mx-auto max-w-5xl">
-        <h2 className="text-center font-heading text-4xl font-semibold text-white">
+        <h2
+          id="como-funciona-heading"
+          className="text-center font-heading text-4xl font-semibold text-white"
+        >
           {t.howItWorks.heading}
         </h2>
-        <div className="mt-14 grid grid-cols-2 gap-10 md:grid-cols-4">
-          {stepKeys.map((key, i) => (
-            <div key={key} className="text-center">
-              <p className="font-heading text-4xl font-semibold text-teal">{String(i + 1).padStart(2, '0')}</p>
-              <p className="mt-3 text-sm font-semibold text-white">{t.howItWorks.steps[key]}</p>
-            </div>
+        <ol className="mt-14 grid gap-10 md:grid-cols-4 md:gap-6">
+          {steps.map((step, i) => (
+            <li key={step.key} className="relative">
+              {i < steps.length - 1 && (
+                <span
+                  aria-hidden
+                  data-slot="step-connector"
+                  className="absolute -bottom-8 left-7 top-16 w-0.5 -translate-x-1/2 rounded-full bg-linear-to-b from-teal to-teal/25 md:bottom-auto md:left-[calc(50%+2.25rem)] md:top-7 md:h-0.5 md:w-[calc(100%-3rem)] md:translate-x-0 md:bg-linear-to-r"
+                />
+              )}
+              <RevealOnScroll
+                delayMs={i * STEP_STAGGER_MS}
+                className="flex gap-5 md:flex-col md:items-center md:text-center"
+              >
+                <span className="relative flex size-14 shrink-0 items-center justify-center rounded-full border-2 border-teal bg-navy-deep text-teal-soft">
+                  <step.icon aria-hidden className="size-6" strokeWidth={1.75} />
+                </span>
+                <div className="pt-1 md:pt-0">
+                  <p className="font-heading text-sm font-semibold text-teal">
+                    {String(i + 1).padStart(2, '0')}
+                  </p>
+                  <h3 className="mt-1 text-base font-bold text-white">{t.howItWorks.steps[step.key]}</h3>
+                  <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-white/70 md:mx-auto">
+                    {t.howItWorks.details[step.key]}
+                  </p>
+                </div>
+              </RevealOnScroll>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </section>
   );
