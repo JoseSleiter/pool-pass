@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { DatePickerPanel } from '@/components/booking/date-picker-panel';
 import { CountRow } from '@/components/booking/count-row';
+import { Field } from '@/components/booking/field';
 import {
   getAvailability,
   getCurrentRate,
@@ -431,37 +432,6 @@ export function BookingCard(props: {
           </a>
         </div>
       )}
-    </div>
-  );
-}
-
-function Field(props: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  error?: string;
-  type?: string;
-  placeholder?: string;
-  hint?: string;
-  inputMode?: 'numeric' | 'tel' | 'email' | 'text';
-  autoComplete?: string;
-}) {
-  return (
-    <div>
-      <label className="block rounded-xl border border-border bg-card px-4 py-2.5">
-        <span className="block text-xs font-medium text-muted-foreground">{props.label}</span>
-        <input
-          type={props.type ?? 'text'}
-          inputMode={props.inputMode}
-          autoComplete={props.autoComplete}
-          placeholder={props.placeholder}
-          value={props.value}
-          onChange={(e) => props.onChange(e.target.value)}
-          className="w-full bg-transparent py-1 font-semibold text-navy outline-none placeholder:font-normal placeholder:text-muted-foreground"
-        />
-      </label>
-      {props.error && <p className="mt-1 text-xs text-destructive">{props.error}</p>}
-      {props.hint && !props.error && <p className="mt-1 text-xs text-muted-foreground">{props.hint}</p>}
     </div>
   );
 }
