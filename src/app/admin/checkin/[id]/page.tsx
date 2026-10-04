@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import type { Metadata } from 'next';
 import { getReservation } from '@/lib/db/reservations';
 import { adminCheckIn } from '@/app/admin/actions';
 import { requireAdmin } from '@/lib/auth/require-admin';
@@ -7,8 +7,17 @@ import { todayCaracas } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
+export const metadata: Metadata = {
+  title: 'Control de entrada',
+  robots: { index: false, follow: false },
+};
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Gate screen opened by the operator's phone camera from the voucher QR.
+ * Lives outside the admin shell on purpose: the whole viewport is the verdict.
+ */
 export default async function CheckinPage({
   params,
 }: {
@@ -21,18 +30,8 @@ export default async function CheckinPage({
   const reservation = UUID_RE.test(id) ? await getReservation(id).catch(() => null) : null;
 
   return (
-    <main className="mx-auto max-w-md space-y-4 p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Check-in</h1>
-        <Link href="/admin" className="cursor-pointer text-sm underline">← Reservas</Link>
-      </div>
-      {reservation ? (
-        <CheckinCard reservation={reservation} today={todayCaracas()} onCheckIn={adminCheckIn} />
-      ) : (
-        <p className="rounded-lg bg-red-100 p-4 text-center font-semibold text-red-900">
-          ⛔ Reserva no encontrada
-        </p>
-      )}
+    <main className="flex min-h-dvh flex-1 flex-col">
+      <CheckinCard reservation={reservation} today={todayCaracas()} onCheckIn={adminCheckIn} />
     </main>
   );
 }
