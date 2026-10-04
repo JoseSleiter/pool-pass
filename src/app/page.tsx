@@ -1,4 +1,9 @@
-import { getPublicPrices, getTodayRemaining, getAvailability } from '@/app/actions/booking';
+import {
+  getPublicPrices,
+  getTodayCapacity,
+  getAvailability,
+  getWeekendBookedPeople,
+} from '@/app/actions/booking';
 import { todayCaracas } from '@/lib/dates';
 import { getDictionary, getLocale } from '@/lib/i18n';
 import { SiteHeader } from '@/components/landing/site-header';
@@ -10,10 +15,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const month = todayCaracas().slice(0, 7);
-  const [prices, remaining, availability, locale] = await Promise.all([
+  const [prices, today, availability, weekendPeople, locale] = await Promise.all([
     getPublicPrices(),
-    getTodayRemaining(),
+    getTodayCapacity(),
     getAvailability(month),
+    getWeekendBookedPeople(), // never throws: null hides the chip
     getLocale(),
   ]);
   const t = getDictionary(locale);
@@ -21,7 +27,13 @@ export default async function Home() {
     <>
       <SiteHeader t={t} />
       <main>
-        <Hero t={t} remaining={remaining} prices={prices} initialAvailability={availability} />
+        <Hero
+          t={t}
+          today={today}
+          weekendPeople={weekendPeople}
+          prices={prices}
+          initialAvailability={availability}
+        />
         <Features t={t} />
         <HowItWorks t={t} />
         <Amenities t={t} />
