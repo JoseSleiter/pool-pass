@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
-import { CheckinsCard, MetricGrid, OccupancyCard, RevenueCard } from './metric-cards';
+import userEvent from '@testing-library/user-event';
+import { C2PQueueCard, CheckinsCard, MetricGrid, OccupancyCard, RevenueCard } from './metric-cards';
 import type { DaySummary } from '@/app/admin/actions';
 import type { DayMetrics } from '@/lib/day-metrics';
 
@@ -155,6 +156,42 @@ describe('RevenueCard', () => {
     expect(within(card).getByText('Cobrado · 1 reserva').parentElement).toHaveTextContent('$10.00');
     expect(within(card).getByText('Por verificar · 0 pagos').parentElement).toHaveTextContent('$0.00');
     expect(within(card).queryByText(/se fija al confirmarlos/)).toBeNull();
+  });
+});
+
+describe('C2PQueueCard', () => {
+  it('is calm with "Todo al día" and no action when nothing is pending', () => {
+    render(<C2PQueueCard metrics={m()} onReviewPending={() => {}} />);
+    const card = screen.getByRole('region', { name: 'Cola C2P' });
+    expect(card).not.toHaveClass('bg-amber-50');
+    expect(within(card).getByText('Todo al día')).toBeInTheDocument();
+    expect(within(card).queryByRole('button')).toBeNull();
+    expect(within(card).queryByTestId('c2p-pulse')).toBeNull();
+  });
+
+  it('turns amber with a motion-safe pulsing badge and the amount waiting', () => {
+    render(<C2PQueueCard metrics={m({ pending: { usd: 45, count: 3 } })} onReviewPending={() => {}} />);
+    const card = screen.getByRole('region', { name: 'Cola C2P' });
+    expect(card).toHaveClass('bg-amber-50');
+    expect(card).toHaveTextContent('3 pagos por verificar');
+    expect(within(card).getByText('$45.00 en espera de conciliación bancaria')).toBeInTheDocument();
+    const ping = within(card).getByTestId('c2p-pulse').firstElementChild;
+    expect(ping).toHaveClass('motion-safe:animate-ping');
+    expect(ping).not.toHaveClass('animate-ping');
+  });
+
+  it('uses singular wording for one pending payment', () => {
+    render(<C2PQueueCard metrics={m({ pending: { usd: 10, count: 1 } })} onReviewPending={() => {}} />);
+    expect(screen.getByRole('region', { name: 'Cola C2P' })).toHaveTextContent('1 pago por verificar');
+  });
+
+  it('"Revisar C2P pendientes" is a 44px button that calls onReviewPending', async () => {
+    const onReview = vi.fn();
+    render(<C2PQueueCard metrics={m({ pending: { usd: 45, count: 3 } })} onReviewPending={onReview} />);
+    const button = screen.getByRole('button', { name: 'Revisar C2P pendientes' });
+    expect(button).toHaveClass('h-11');
+    await userEvent.click(button);
+    expect(onReview).toHaveBeenCalledTimes(1);
   });
 });
 

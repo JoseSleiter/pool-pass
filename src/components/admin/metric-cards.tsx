@@ -1,7 +1,9 @@
 'use client';
 
 import { useId } from 'react';
-import { CalendarX2, DoorOpen, Users, Wallet, type LucideIcon } from 'lucide-react';
+import { CalendarX2, CircleCheck, DoorOpen, Smartphone, Users, Wallet, type LucideIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ADMIN_ACTION } from './ui-constants';
 import type { DaySummary } from '@/app/admin/actions';
 import {
   hourLabel, hourlySeries, occupancyLevel, occupancyPercent, type DayMetrics, type OccupancyLevel,
@@ -217,6 +219,49 @@ export function RevenueCard(props: { metrics: DayMetrics }) {
           El monto en Bs. de los pagos por verificar se fija al confirmarlos.
         </p>
       )}
+    </MetricCard>
+  );
+}
+
+export function C2PQueueCard(props: { metrics: DayMetrics; onReviewPending: () => void }) {
+  const { count, usd: amount } = props.metrics.pending;
+
+  if (count === 0) {
+    return (
+      <MetricCard title="Cola C2P" icon={Smartphone}>
+        <p className="text-2xl font-extrabold text-navy">0</p>
+        <p className="text-xs text-muted-foreground">pagos por verificar</p>
+        <p className="mt-auto flex items-center gap-1 pt-3 text-sm font-semibold text-green-700">
+          <CircleCheck aria-hidden className="size-4" />
+          Todo al día
+        </p>
+      </MetricCard>
+    );
+  }
+
+  return (
+    <MetricCard title="Cola C2P" icon={Smartphone} alert>
+      <div className="flex items-center gap-2">
+        <span data-testid="c2p-pulse" aria-hidden className="relative flex size-3">
+          <span className="absolute inline-flex size-full rounded-full bg-amber-400 opacity-75 motion-safe:animate-ping" />
+          <span className="relative inline-flex size-3 rounded-full bg-amber-500" />
+        </span>
+        {/* one <p> with an explicit space so the text reads "3 pagos por verificar" */}
+        <p className="flex items-baseline gap-1.5 text-amber-800">
+          <span className="text-2xl font-extrabold">{count}</span>{' '}
+          <span className="text-sm font-semibold">{count === 1 ? 'pago por verificar' : 'pagos por verificar'}</span>
+        </p>
+      </div>
+      <p className="text-xs text-amber-900">{`${usd(amount)} en espera de conciliación bancaria`}</p>
+      <div className="mt-auto pt-3">
+        <Button
+          type="button"
+          onClick={props.onReviewPending}
+          className={cn(ADMIN_ACTION, 'w-full bg-amber-600 text-white hover:bg-amber-700')}
+        >
+          Revisar C2P pendientes
+        </Button>
+      </div>
     </MetricCard>
   );
 }
