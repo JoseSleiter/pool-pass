@@ -411,7 +411,7 @@ describe('role management (owner only)', () => {
 
   it('adminUpsertRole forbids an owner from demoting themself', async () => {
     const res = await adminUpsertRole({ email: ADMIN_EMAIL, role: 'operator' });
-    expect(res).toEqual({ ok: false, message: 'No puedes quitarte tu propio rol de owner.' });
+    expect(res).toEqual({ ok: false, message: 'No puedes quitarte tu propio rol de dueño.' });
     expect(upsertAdminRole).not.toHaveBeenCalled();
     expect(logAudit).not.toHaveBeenCalled();
   });

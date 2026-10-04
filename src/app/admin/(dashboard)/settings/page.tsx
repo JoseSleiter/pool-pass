@@ -10,7 +10,7 @@ export default async function AdminSettings() {
   if (me.role !== 'owner') {
     return (
       <p className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900">
-        Solo un owner puede ver y cambiar la configuración.
+        Solo el dueño puede ver y cambiar la configuración.
       </p>
     );
   }

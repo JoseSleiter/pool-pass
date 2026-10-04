@@ -186,7 +186,7 @@ export async function adminUpsertRole(raw: unknown): Promise<{ ok: boolean; mess
   const { email, role } = parsed.data;
   if (!isAdminEmail(email)) return { ok: false, message: 'Ese correo no está en ADMIN_EMAILS.' };
   if (email === me.email && role !== 'owner') {
-    return { ok: false, message: 'No puedes quitarte tu propio rol de owner.' };
+    return { ok: false, message: 'No puedes quitarte tu propio rol de dueño.' };
   }
   try {
     await upsertAdminRole(email, role);
