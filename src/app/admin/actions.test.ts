@@ -20,6 +20,7 @@ vi.mock('@/lib/db/reservations', () => ({
   listOverrides: vi.fn(),
   upsertOverride: vi.fn(),
   deleteOverride: vi.fn(),
+  searchReservations: vi.fn(),
 }));
 vi.mock('@/lib/db/admin-roles', () => ({
   getAdminRole: vi.fn(async () => null),
@@ -42,10 +43,11 @@ import {
   adminListReservations, adminGetDaySummary, adminCheckIn, adminResendVoucher,
   adminGetSettings, adminUpdateSettings, adminUpsertOverride, adminDeleteOverride,
   adminListRoles, adminUpsertRole, adminListAudit, adminListBcvHistory,
+  adminSearchReservations,
 } from './actions';
 import {
   listReservationsByDate, getReservation, checkInReservation, getSettings,
-  updateSettings, listOverrides, upsertOverride, deleteOverride,
+  updateSettings, listOverrides, upsertOverride, deleteOverride, searchReservations,
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
 import { getAdminRole, listAdminRoles, upsertAdminRole } from '@/lib/db/admin-roles';
@@ -206,7 +208,33 @@ describe('adminGetDaySummary aggregates (authorized user)', () => {
       revenueVes: 1825,        // 1277.5 + 547.5
       paidCount: 2,
       pendingCount: 1,
+      checkinsByHour: [],
     });
+  });
+
+  it('buckets checked-in people by Caracas hour', async () => {
+    const row = (over: Record<string, unknown>) => ({
+      id: 'x', code: 'PP-00000', date: '2030-01-15', first_name: 'A', last_name: 'B',
+      email: 'a@b.c', id_type: 'V', id_number: '1', adults: 1, children: 0,
+      total_usd: 15, bcv_rate: 36.5, total_ves: 547.5, status: 'checked_in',
+      payment_ref: null, expires_at: null, checked_in_at: null, created_at: '', ...over,
+    });
+    vi.mocked(listReservationsByDate).mockResolvedValue([
+      row({ checked_in_at: '2030-01-15T13:10:00Z', adults: 2, children: 1 }), // 09:10 Caracas
+      row({ checked_in_at: '2030-01-15T13:50:00Z' }),                          // 09:50
+      row({ checked_in_at: '2030-01-15T18:00:00Z' }),                          // 14:00
+      row({ status: 'confirmed' }),
+    ] as never);
+    vi.mocked(getSettings).mockResolvedValue({
+      daily_capacity: 100, adult_price_usd: 15, child_price_usd: 5,
+      last_bcv_rate: null, last_bcv_rate_at: null,
+    } as never);
+
+    const s = await adminGetDaySummary('2030-01-15');
+    expect(s.checkinsByHour).toEqual([
+      { hour: 9, people: 4 },
+      { hour: 14, people: 1 },
+    ]);
   });
 });
 
@@ -469,5 +497,44 @@ describe('paginated read actions', () => {
     mockUser = null;
     await expect(adminListBcvHistory({ page: 1, pageSize: 10 })).rejects.toThrow('Unauthorized');
     expect(listBcvHistory).not.toHaveBeenCalled();
+  });
+});
+
+describe('adminSearchReservations', () => {
+  const valid = { q: '  Ana ', statuses: ['confirmed'], page: '2', pageSize: 25 };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(searchReservations).mockResolvedValue({ rows: [], total: 0 });
+  });
+
+  it('rejects with Unauthorized when there is no session and never queries', async () => {
+    mockUser = null;
+    await expect(adminSearchReservations(valid)).rejects.toThrow('Unauthorized');
+    expect(searchReservations).not.toHaveBeenCalled();
+  });
+
+  it('rejects a logged-in non-admin and never queries', async () => {
+    mockUser = { id: 'user-9', email: 'intruder@evil.com' };
+    await expect(adminSearchReservations(valid)).rejects.toThrow('Unauthorized');
+    expect(searchReservations).not.toHaveBeenCalled();
+  });
+
+  it('throws Invalid query on bad input without hitting the data layer', async () => {
+    mockUser = { id: 'admin-1', email: ADMIN_EMAIL };
+    await expect(
+      adminSearchReservations({ page: 1, pageSize: 10, sort: { by: 'email', dir: 'asc' } })
+    ).rejects.toThrow('Invalid query');
+    expect(searchReservations).not.toHaveBeenCalled();
+  });
+
+  it('forwards the normalized query and returns the data layer result', async () => {
+    mockUser = { id: 'admin-1', email: ADMIN_EMAIL };
+    const result = { rows: [], total: 42 };
+    vi.mocked(searchReservations).mockResolvedValue(result);
+    await expect(adminSearchReservations(valid)).resolves.toBe(result);
+    expect(searchReservations).toHaveBeenCalledWith({
+      q: 'Ana', statuses: ['confirmed'], page: 2, pageSize: 25,
+    });
   });
 });

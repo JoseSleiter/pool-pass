@@ -8,11 +8,14 @@ import { listAdminRoles, upsertAdminRole, type AdminRole } from '@/lib/db/admin-
 import {
   listReservationsByDate, getReservation, checkInReservation,
   getSettings, updateSettings, listOverrides, upsertOverride, deleteOverride,
+  searchReservations,
   type ReservationRow,
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
 import { logAudit, listAudit, type AuditRow } from '@/lib/audit';
 import { listBcvHistory, type BcvHistoryRow } from '@/lib/bcv-history';
+import { parseReservationQuery } from '@/lib/reservation-search';
+import { bucketCheckinsByHour } from '@/lib/day-stats';
 
 export interface DaySummary {
   capacity: number;
@@ -23,6 +26,8 @@ export interface DaySummary {
   revenueVes: number;
   paidCount: number;
   pendingCount: number;
+  /** People checked in per Caracas hour (0–23), ascending; empty hours omitted. */
+  checkinsByHour: { hour: number; people: number }[];
 }
 
 export async function adminListReservations(date: string): Promise<ReservationRow[]> {
@@ -46,6 +51,7 @@ export async function adminGetDaySummary(date: string): Promise<DaySummary> {
     revenueVes: paid.reduce((s, r) => s + Number(r.total_ves ?? 0), 0),
     paidCount: paid.length,
     pendingCount: rows.filter((r) => r.status === 'pending_payment').length,
+    checkinsByHour: bucketCheckinsByHour(rows),
   };
 }
 
@@ -217,4 +223,13 @@ export async function adminListBcvHistory(raw: unknown): Promise<{ rows: BcvHist
   const parsed = pageSchema.safeParse(raw);
   if (!parsed.success) throw new Error('Invalid page');
   return listBcvHistory(parsed.data);
+}
+
+export async function adminSearchReservations(
+  raw: unknown,
+): Promise<{ rows: ReservationRow[]; total: number }> {
+  await requireAdmin();
+  const query = parseReservationQuery(raw);
+  if (!query) throw new Error('Invalid query');
+  return searchReservations(query);
 }

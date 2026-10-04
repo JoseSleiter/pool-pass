@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shortDateEs, longDateEs, visitLabelEs } from './dates';
+import { shortDateEs, longDateEs, visitLabelEs, caracasHour, upcomingWeekend } from './dates';
 
 describe('spanish date formatting (Caracas)', () => {
   it('shortDateEs renders weekday + day + month', () => {
@@ -16,5 +16,29 @@ describe('spanish date formatting (Caracas)', () => {
     expect(visitLabelEs('2026-07-17')).toBe('Vie, 17 Jul 2026'); // Friday
     expect(visitLabelEs('2026-01-03')).toBe('Sáb, 03 Ene 2026'); // Saturday (accent)
     expect(visitLabelEs('2026-01-07')).toBe('Mié, 07 Ene 2026'); // Wednesday (accent)
+  });
+});
+
+describe('caracasHour (UTC-4, no DST)', () => {
+  it.each([
+    ['2030-01-15T13:05:00Z', 9],
+    ['2030-01-15T03:59:00Z', 23], // previous Caracas day, still late evening
+    ['2030-01-15T04:30:00Z', 0],  // just after Caracas midnight
+    ['2030-01-15T16:00:00-04:00', 16],
+  ])('%s -> %i', (iso, hour) => {
+    expect(caracasHour(iso)).toBe(hour);
+  });
+});
+
+describe('upcomingWeekend', () => {
+  it.each([
+    ['2026-10-07', '2026-10-10', '2026-10-11'], // Wednesday -> next weekend
+    ['2026-10-09', '2026-10-10', '2026-10-11'], // Friday
+    ['2026-10-10', '2026-10-10', '2026-10-11'], // Saturday -> current weekend
+    ['2026-10-11', '2026-10-10', '2026-10-11'], // Sunday -> current weekend
+    ['2026-10-12', '2026-10-17', '2026-10-18'], // Monday -> following weekend
+    ['2026-12-31', '2027-01-02', '2027-01-03'], // year rollover
+  ])('%s -> %s / %s', (today, saturday, sunday) => {
+    expect(upcomingWeekend(today)).toEqual({ saturday, sunday });
   });
 });

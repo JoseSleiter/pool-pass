@@ -1,4 +1,7 @@
 import { serviceClient } from './service-client';
+import {
+  DEFAULT_SORT, SEARCH_COLUMN, SORT_COLUMNS, pageRange, searchTerms, termPattern,
+} from '@/lib/reservation-search';
 
 export interface ReserveInput {
   date: string; firstName: string; lastName: string; email: string;
@@ -19,6 +22,16 @@ export interface ReservationRow {
   status: 'pending_payment' | 'confirmed' | 'failed' | 'expired' | 'checked_in';
   payment_ref: string | null; expires_at: string | null;
   checked_in_at: string | null; created_at: string;
+}
+
+export interface ReservationQuery {
+  dateFrom?: string; dateTo?: string;           // YYYY-MM-DD, inclusive
+  statuses?: ReservationRow['status'][];
+  q?: string;                                    // nombre, apellido, código PP-XXXX o número de documento
+  guestType?: 'individual' | 'family';
+  sort?: { by: 'date' | 'code' | 'name' | 'guests' | 'total_usd' | 'status'; dir: 'asc' | 'desc' };
+  page: number;                                  // 1-based
+  pageSize: 10 | 25 | 50;
 }
 
 export interface SettingsRow {
@@ -105,6 +118,67 @@ export async function listReservationsByDate(date: string): Promise<ReservationR
     .order('created_at', { ascending: true });
   if (error) throw new Error(error.message);
   return data;
+}
+
+/** Explicit list (not '*') so rows match ReservationRow exactly — party_size stays server-side. */
+const RESERVATION_COLUMNS =
+  'id, code, date, first_name, last_name, email, id_type, id_number, adults, children, ' +
+  'total_usd, bcv_rate, total_ves, status, payment_ref, expires_at, checked_in_at, created_at';
+
+function filteredReservations(q: ReservationQuery, head: boolean) {
+  let query = serviceClient()
+    .from('reservations')
+    .select(RESERVATION_COLUMNS, { count: 'exact', head });
+  if (q.dateFrom) query = query.gte('date', q.dateFrom);
+  if (q.dateTo) query = query.lte('date', q.dateTo);
+  if (q.statuses && q.statuses.length > 0) query = query.in('status', q.statuses);
+  if (q.guestType === 'individual') query = query.eq('party_size', 1);
+  if (q.guestType === 'family') query = query.gte('party_size', 2);
+  // One ilike per (normalized) term on the unaccented search_text column; filters are
+  // ANDed, so every term must match.
+  for (const term of searchTerms(q.q)) query = query.ilike(SEARCH_COLUMN, termPattern(term));
+  return query;
+}
+
+/**
+ * Server-side filtered, sorted, paginated reservation search for the admin.
+ * Caller must validate `q` (see parseReservationQuery) and gate on requireAdmin().
+ */
+export async function searchReservations(
+  q: ReservationQuery,
+): Promise<{ rows: ReservationRow[]; total: number }> {
+  const sort = q.sort ?? DEFAULT_SORT;
+  const { from, to } = pageRange(q.page, q.pageSize);
+
+  let query = filteredReservations(q, false);
+  for (const col of SORT_COLUMNS[sort.by]) {
+    query = query.order(col, { ascending: sort.dir === 'asc' });
+  }
+  // Unique tiebreaker keeps pagination stable when the sort keys tie.
+  const { data, count, error } = await query.order('id', { ascending: true }).range(from, to);
+
+  // PostgREST answers 416 / PGRST103 when the offset is past the last row.
+  if (error?.code === 'PGRST103') {
+    const { count: total, error: countError } = await filteredReservations(q, true);
+    if (countError) throw new Error(countError.message);
+    return { rows: [], total: total ?? 0 };
+  }
+  if (error) throw new Error(error.message);
+  return { rows: (data ?? []) as unknown as ReservationRow[], total: count ?? 0 };
+}
+
+/** Total people (adults + children) across reservations in [dateFrom, dateTo] with the given statuses. */
+export async function sumPartySize(p: {
+  dateFrom: string; dateTo: string; statuses: ReservationRow['status'][];
+}): Promise<number> {
+  const { data, error } = await serviceClient()
+    .from('reservations')
+    .select('adults, children')
+    .gte('date', p.dateFrom)
+    .lte('date', p.dateTo)
+    .in('status', p.statuses);
+  if (error) throw new Error(error.message);
+  return data.reduce((sum, r) => sum + r.adults + r.children, 0);
 }
 
 export async function getSettings(): Promise<SettingsRow> {
