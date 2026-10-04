@@ -6,6 +6,7 @@ import { ReceiptText } from 'lucide-react';
 import type { TransactionRow } from '@/lib/finance/transactions';
 import { EmptyState } from './empty-state';
 import { StatusChip } from './status-chip';
+import { STATUS_CHIP_CLASS } from '@/lib/reservation-status';
 import { TransactionsFilters } from './transactions-filters';
 import { TransactionsTotals, paymentsLabel } from './transactions-totals';
 import { TransactionsList } from './transactions-list';
@@ -31,7 +32,8 @@ describe('EmptyState', () => {
 describe('StatusChip', () => {
   it('reuses the central status label and colour', () => {
     render(<StatusChip row={{ status: 'pending_payment', checked_in_at: null }} />);
-    expect(screen.getByText('Pago en verificación')).toHaveClass('bg-amber-100');
+    // Assert against the central palette, not a copy of it, so a palette change can't break this.
+    expect(screen.getByText('Pago en verificación')).toHaveClass(...STATUS_CHIP_CLASS.pending_payment.split(' '));
   });
 });
 
