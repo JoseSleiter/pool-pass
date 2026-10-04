@@ -253,9 +253,10 @@ export function Amenities({
                 ) : (
                   <WaterPlaceholder icon={Icon} />
                 )}
-                <span className="absolute inset-x-3 bottom-3 flex items-center gap-2 rounded-2xl border border-white/25 bg-white/15 px-3.5 py-2.5 text-sm font-semibold leading-snug text-white shadow-lg shadow-navy-deep/20 backdrop-blur-md">
+                <span className="absolute inset-x-3 bottom-3 flex items-center gap-2 rounded-2xl border border-white/25 bg-navy-deep/45 px-3 py-2.5 text-sm font-semibold sm:px-3.5 leading-snug text-white shadow-lg shadow-navy-deep/20 backdrop-blur-md">
                   <Icon aria-hidden className="size-4 shrink-0 text-teal-soft" strokeWidth={2} />
-                  {t.content.amenities[amenity.id]}
+                  {/* min-w-0 + hyphens: long words ("Estacionamiento") wrap inside narrow tiles on phones */}
+                  <span className="min-w-0 hyphens-auto break-words">{t.content.amenities[amenity.id]}</span>
                 </span>
               </li>
             );
