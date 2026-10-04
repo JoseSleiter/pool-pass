@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Logo } from '@/components/brand/logo';
+import { LocaleToggle } from '@/components/landing/locale-toggle';
 import type { Dictionary } from '@/lib/i18n/types';
 
 /** Transparent nav bar that sits on top of the hero gradient (navy). */
@@ -22,6 +23,7 @@ export function SiteHeader({ t }: { t: Dictionary }) {
           <Link href="/reservar" className="transition-colors hover:text-teal-soft">
             {t.header.book}
           </Link>
+          <LocaleToggle />
         </nav>
       </div>
     </header>
