@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CheckinCard } from './checkin-card';
@@ -188,5 +188,74 @@ describe('CheckinCard — register flow', () => {
     await userEvent.setup().click(registerButton()!);
     expect(await screen.findByRole('alert')).toHaveTextContent(/revisa la conexión/i);
     expect(registerButton()).toBeEnabled();
+  });
+});
+
+describe('CheckinCard — haptics', () => {
+  function stubVibrate(impl: (p: VibratePattern) => boolean = () => true) {
+    const spy = vi.fn(impl);
+    Object.defineProperty(navigator, 'vibrate', { value: spy, configurable: true, writable: true });
+    return spy;
+  }
+
+  afterEach(() => {
+    Reflect.deleteProperty(navigator, 'vibrate');
+  });
+
+  it('short buzz when a valid ticket is shown', () => {
+    const vibrate = stubVibrate();
+    render(<CheckinCard reservation={row()} today={TODAY} onCheckIn={okAction()} />);
+    expect(vibrate).toHaveBeenCalledWith(80);
+  });
+
+  it('long double buzz for an already-used ticket', () => {
+    const vibrate = stubVibrate();
+    render(
+      <CheckinCard
+        reservation={row({ status: 'checked_in', checked_in_at: '2030-01-15T14:00:00Z' })}
+        today={TODAY}
+        onCheckIn={okAction()}
+      />
+    );
+    expect(vibrate).toHaveBeenCalledWith([400, 120, 400]);
+  });
+
+  it('success pattern after registering, error pattern after a failure', async () => {
+    const vibrate = stubVibrate();
+    const user = userEvent.setup();
+    const { unmount } = render(<CheckinCard reservation={row()} today={TODAY} onCheckIn={okAction()} />);
+    await user.click(registerButton()!);
+    await screen.findByRole('heading', { level: 1, name: 'Entrada registrada' });
+    expect(vibrate).toHaveBeenLastCalledWith([60, 40, 60]);
+    unmount();
+
+    vibrate.mockClear();
+    render(<CheckinCard reservation={row()} today={TODAY} onCheckIn={vi.fn(async () => ({ ok: false }))} />);
+    await user.click(registerButton()!);
+    await screen.findByRole('alert');
+    expect(vibrate).toHaveBeenLastCalledWith([200, 80, 200]);
+  });
+
+  it('works without navigator.vibrate (iOS Safari / desktop)', () => {
+    expect('vibrate' in navigator).toBe(false);
+    render(<CheckinCard reservation={row()} today={TODAY} onCheckIn={okAction()} />);
+    expect(gate()).toHaveAttribute('data-state', 'valid');
+  });
+
+  it('a throwing navigator.vibrate never breaks the gate', () => {
+    stubVibrate(() => { throw new Error('blocked'); });
+    render(<CheckinCard reservation={row()} today={TODAY} onCheckIn={okAction()} />);
+    expect(gate()).toHaveAttribute('data-state', 'valid');
+  });
+});
+
+describe('CheckinCard — reduced motion', () => {
+  it('state entrance animates only under motion-safe and no animation is unconditional', () => {
+    render(<CheckinCard reservation={row()} today={TODAY} onCheckIn={okAction()} />);
+    expect(screen.getByRole('status').className).toMatch(/\bmotion-safe:animate-in\b/);
+    const tokens = Array.from(document.querySelectorAll('[class]')).flatMap((el) =>
+      (el.getAttribute('class') ?? '').split(/\s+/)
+    );
+    expect(tokens.filter((t) => /^animate-/.test(t))).toEqual([]);
   });
 });

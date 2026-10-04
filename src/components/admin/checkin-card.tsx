@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -48,6 +48,31 @@ const TONE: Record<View, Tone> = {
   'already-in': { surface: 'bg-red-800 text-white', panel: 'bg-black/25', icon: OctagonX },
   invalid: { surface: 'bg-red-900 text-white', panel: 'bg-black/25', icon: CircleX },
 };
+
+// Vibration patterns (ms): distinct rhythms so the operator can tell states apart without looking.
+const HAPTIC: Record<View, number | number[]> = {
+  valid: 80,
+  success: [60, 40, 60],
+  'wrong-date': [150, 100, 150],
+  'already-in': [400, 120, 400],
+  invalid: [400, 120, 400],
+};
+const HAPTIC_ERROR = [200, 80, 200];
+
+/**
+ * navigator.vibrate is missing on iOS Safari and desktop, and browsers may
+ * ignore or reject it without prior user activation (e.g. on page load right
+ * after the camera opened the URL).
+ */
+function buzz(pattern: number | number[]) {
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(pattern);
+    }
+  } catch {
+    // Haptics are a nicety; never break the gate over them.
+  }
+}
 
 function copy(state: CheckinState, enteredAt: string | null): { title: string; detail: string | null } {
   if (enteredAt) {
@@ -100,6 +125,10 @@ export function CheckinCard({
   const Icon = tone.icon;
   const { title, detail } = copy(state, enteredAt);
 
+  useEffect(() => {
+    buzz(HAPTIC[view]);
+  }, [view]);
+
   async function register() {
     if (!reservation || busy) return;
     setBusy(true);
@@ -107,11 +136,13 @@ export function CheckinCard({
     try {
       const res = await onCheckIn(reservation.id);
       if (!res.ok) {
+        buzz(HAPTIC_ERROR);
         setError(res.message ?? 'No se pudo registrar la entrada.');
         return;
       }
       setEnteredAt(now().toISOString());
     } catch {
+      buzz(HAPTIC_ERROR);
       setError('No se pudo registrar la entrada. Revisa la conexión e intenta de nuevo.');
     } finally {
       setBusy(false);
@@ -143,8 +174,9 @@ export function CheckinCard({
       </header>
 
       <div
+        key={view}
         role="status"
-        className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-8 text-center"
+        className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-8 text-center motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-300"
       >
         <Icon data-testid="gate-icon" aria-hidden className="size-24 sm:size-32" strokeWidth={2.5} />
         <h1
