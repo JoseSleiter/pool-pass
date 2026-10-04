@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Fredoka, Rubik, Geist_Mono } from "next/font/google";
+import { getDictionary, getLocale } from "@/lib/i18n";
+import { I18nProvider } from "@/lib/i18n/provider";
+import { landingContent } from "@/lib/landing-content";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -37,35 +40,45 @@ function siteUrl(): URL {
   }
 }
 
-export const metadata: Metadata = {
-  metadataBase: siteUrl(),
-  title: {
-    default: 'Complejo Turístico Villa Victoria',
-    template: '%s · Complejo Turístico Villa Victoria',
-  },
-  description:
-    'Reserva tu pase de piscina en línea, paga con Pago Móvil y entra con tu código QR. Sin colas, sin efectivo.',
-  openGraph: {
-    type: 'website',
-    locale: 'es_VE',
-    siteName: 'Complejo Turístico Villa Victoria',
-    title: 'Complejo Turístico Villa Victoria',
-    description:
-      'Reserva tu pase de piscina en línea, paga con Pago Móvil y entra con tu código QR.',
-  },
-};
+// Resolved once at module load so a bad env value warns once, not per request.
+const metadataBase = siteUrl();
 
-export default function RootLayout({
+export async function generateMetadata(): Promise<Metadata> {
+  const t = getDictionary(await getLocale());
+  const club = landingContent.clubName;
+  return {
+    metadataBase,
+    title: {
+      default: club,
+      template: `%s · ${club}`,
+    },
+    description: t.meta.description,
+    openGraph: {
+      type: 'website',
+      locale: t.meta.ogLocale,
+      siteName: club,
+      title: club,
+      description: t.meta.ogDescription,
+    },
+  };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
   return (
     <html
-      lang="es"
+      lang={locale}
       className={`${fredoka.variable} ${rubik.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <I18nProvider locale={locale} dict={getDictionary(locale)}>
+          {children}
+        </I18nProvider>
+      </body>
     </html>
   );
 }
