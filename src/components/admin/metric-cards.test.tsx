@@ -7,6 +7,7 @@ import type { DaySummary } from '@/app/admin/actions';
 const summary: DaySummary = {
   capacity: 100, confirmedPeople: 5, checkedInParties: 1, checkedInPeople: 1,
   revenueUsd: 65, revenueVes: 2390.05, paidCount: 2, pendingCount: 0,
+  checkinsByHour: [],
 };
 
 describe('MetricGrid', () => {
