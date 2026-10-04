@@ -1,3 +1,5 @@
+import type { Locale } from '@/lib/i18n/types';
+
 /** Current date in Venezuela (YYYY-MM-DD). Anchors "today" to Caracas, not the server's UTC clock. */
 export function todayCaracas(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
@@ -69,4 +71,30 @@ export function visitLabelEs(date: string): string {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
     .replace(/\./g, '');
+}
+
+function capitalizeTokens(s: string): string {
+  // Same reasoning as visitLabelEs: split on spaces, not \b, so accented
+  // weekdays ("sáb", "mié") are capitalized correctly.
+  return s
+    .split(' ')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+/** Booking-card date label: "Vie, 17 Jul 2026" (es) / "Fri, Jul 17, 2026" (en). */
+export function visitLabel(date: string, locale: Locale): string {
+  if (locale === 'es') return visitLabelEs(date);
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Caracas',
+    weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+  }).format(new Date(`${date}T12:00:00-04:00`));
+}
+
+/** Voucher date line: "Mar, 15 Ene" (es) / "Tue, Jan 15" (en). */
+export function shortDateLabel(date: string, locale: Locale): string {
+  if (locale === 'es') return capitalizeTokens(shortDateEs(date).replace(/\./g, ''));
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Caracas', weekday: 'short', day: 'numeric', month: 'short',
+  }).format(new Date(`${date}T12:00:00-04:00`));
 }
