@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { renderWithI18n } from '@/test/i18n';
 import userEvent from '@testing-library/user-event';
 import { BookingCard } from './booking-card';
 
@@ -16,7 +17,7 @@ const prices = { adult: 15, child: 5 };
 const user = userEvent.setup();
 
 function renderCard() {
-  return render(<BookingCard prices={prices} initialAvailability={{}} remaining={40} />);
+  return renderWithI18n(<BookingCard prices={prices} initialAvailability={{}} remaining={40} />);
 }
 
 async function goToPay() {
