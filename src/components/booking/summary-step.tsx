@@ -57,7 +57,7 @@ export function SummaryStep(props: {
               </div>
               <div className="-mx-3 flex items-baseline justify-between gap-4 rounded-xl bg-secondary px-3 py-3">
                 <dt className="font-semibold text-secondary-foreground">{t.booking.totalVes}</dt>
-                <dd data-testid="breakdown-total-ves" className="font-heading text-xl font-bold text-secondary-foreground tabular-nums">
+                <dd data-testid="breakdown-total-ves" className="font-heading text-xl font-bold whitespace-nowrap text-secondary-foreground tabular-nums">
                   Bs. {usdToVes(total, props.rate).toFixed(2)}
                 </dd>
               </div>
