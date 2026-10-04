@@ -8,7 +8,7 @@ import {
 const hrefs = (groups: NavGroup[]) => groups.flatMap((g) => g.items.map((i) => i.href));
 
 describe('NAV_GROUPS (roadmap §3.4 contract)', () => {
-  it('declares every admin route in its group, with finance and audit ready', () => {
+  it('declares every admin route in its group, all of them ready', () => {
     const shape = NAV_GROUPS.map((g) => ({
       label: g.label,
       items: g.items.map((i) => ({ href: i.href, label: i.label, ownerOnly: !!i.ownerOnly, ready: i.ready })),
@@ -16,7 +16,7 @@ describe('NAV_GROUPS (roadmap §3.4 contract)', () => {
     expect(shape).toEqual([
       { label: 'Operaciones', items: [
         { href: '/admin', label: 'Hoy', ownerOnly: false, ready: true },
-        { href: '/admin/reservations', label: 'Reservas', ownerOnly: false, ready: false },
+        { href: '/admin/reservations', label: 'Reservas', ownerOnly: false, ready: true },
       ] },
       { label: 'Finanzas', items: [
         { href: '/admin/finance/transactions', label: 'Transacciones C2P', ownerOnly: false, ready: true },
@@ -35,14 +35,17 @@ describe('visibleNavGroups', () => {
     const groups = visibleNavGroups('owner');
     expect(groups.map((g) => g.label)).toEqual(['Operaciones', 'Finanzas', 'Gestión']);
     expect(hrefs(groups)).toEqual([
-      '/admin', '/admin/finance/transactions', '/admin/finance/bcv', '/admin/settings', '/admin/audit',
+      '/admin', '/admin/reservations', '/admin/finance/transactions', '/admin/finance/bcv',
+      '/admin/settings', '/admin/audit',
     ]);
   });
 
   it('hides owner-only items from an operator', () => {
     const groups = visibleNavGroups('operator');
     expect(groups.map((g) => g.label)).toEqual(['Operaciones', 'Finanzas']);
-    expect(hrefs(groups)).toEqual(['/admin', '/admin/finance/transactions', '/admin/finance/bcv']);
+    expect(hrefs(groups)).toEqual([
+      '/admin', '/admin/reservations', '/admin/finance/transactions', '/admin/finance/bcv',
+    ]);
   });
 
   it('applies ready and role independently', () => {

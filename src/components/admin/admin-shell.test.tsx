@@ -35,6 +35,7 @@ describe('AdminShell', () => {
     expect(screen.getAllByAltText('Complejo Turístico Villa Victoria').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Hoy' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: 'Configuración' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Reservas' })).toHaveAttribute('href', '/admin/reservations');
     expect(screen.getByText('owner@club.com')).toBeInTheDocument();
     expect(screen.getByText('Dueño')).toBeInTheDocument();
     expect(screen.getByText('BCV · Bs. 36.45')).toBeInTheDocument();
@@ -58,9 +59,9 @@ describe('AdminShell', () => {
     expect(screen.getByRole('link', { name: 'Auditoría' })).toHaveAttribute('href', '/admin/audit');
   });
 
-  it('does not render routes that are not ready yet', () => {
+  it('renders the reservations route once it is ready', () => {
     renderShell('owner');
-    expect(screen.queryByRole('link', { name: 'Reservas' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Reservas' })).toHaveAttribute('href', '/admin/reservations');
   });
 
   it('has a 44px mobile menu button', () => {
