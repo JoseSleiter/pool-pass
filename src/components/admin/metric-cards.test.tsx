@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { C2PQueueCard, CheckinsCard, MetricGrid, OccupancyCard, RevenueCard } from './metric-cards';
-import type { DaySummary } from '@/app/admin/actions';
 import type { DayMetrics } from '@/lib/day-metrics';
 
 const metrics: DayMetrics = {
@@ -195,24 +194,18 @@ describe('C2PQueueCard', () => {
   });
 });
 
-// Legacy grid (DaySummary) — replaced in Task 10.
-const summary: DaySummary = {
-  capacity: 100, confirmedPeople: 5, checkedInParties: 1, checkedInPeople: 1,
-  revenueUsd: 65, revenueVes: 2390.05, paidCount: 2, pendingCount: 0,
-  checkinsByHour: [],
-};
-
-describe('MetricGrid (legacy)', () => {
-  it('shows occupancy, arrivals, revenue and "Todo al día" when no pending', () => {
-    render(<MetricGrid summary={summary} onReviewPending={() => {}} />);
-    expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getByText(/\/100/)).toBeInTheDocument();
-    expect(screen.getByText('$65.00')).toBeInTheDocument();
-    expect(screen.getByText(/Todo al día/i)).toBeInTheDocument();
+describe('MetricGrid', () => {
+  it('renders the four KPI cards in operating order', () => {
+    render(<MetricGrid metrics={m()} onReviewPending={() => {}} />);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
+      'Ocupación', 'Check-ins', 'Ingresos', 'Cola C2P',
+    ]);
   });
-  it('shows "Requiere atención" and a review button when pending > 0', () => {
-    render(<MetricGrid summary={{ ...summary, pendingCount: 3 }} onReviewPending={() => {}} />);
-    expect(screen.getByText(/Requiere atención/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Revisar pagos/i })).toBeInTheDocument();
+
+  it('wires "Revisar C2P pendientes" to onReviewPending', async () => {
+    const onReview = vi.fn();
+    render(<MetricGrid metrics={m({ pending: { usd: 20, count: 2 } })} onReviewPending={onReview} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Revisar C2P pendientes' }));
+    expect(onReview).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,6 +1,8 @@
-import { adminListReservations, adminGetDaySummary } from '../actions';
+import { adminListReservations } from '../actions';
+import { adminGetDayMetrics } from '../metrics-actions';
 import { AdminDayView } from '@/components/admin/day-view';
 import { todayCaracas } from '@/lib/dates';
+import { parseDayParam } from '@/lib/day-metrics';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,11 +12,13 @@ export default async function AdminHome({
   searchParams: Promise<{ date?: string }>;
 }) {
   const { date: rawDate } = await searchParams;
-  const date = rawDate && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : todayCaracas();
-  const [rows, summary] = await Promise.all([
+  const today = todayCaracas();
+  const date = parseDayParam(rawDate, today);
+  const [rows, metrics] = await Promise.all([
     adminListReservations(date),
-    adminGetDaySummary(date),
+    adminGetDayMetrics(date),
   ]);
 
-  return <AdminDayView date={date} rows={rows} summary={summary} />;
+  // key: a new day starts with fresh view state (chip "Todas", no toast).
+  return <AdminDayView key={date} date={date} today={today} rows={rows} metrics={metrics} />;
 }

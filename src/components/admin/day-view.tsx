@@ -7,16 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Toast } from '@/components/ui/toast';
 import { MetricGrid } from './metric-cards';
 import { ReservationsTable, type ChipKey } from './reservations-table';
-import { adminCheckIn, adminResendVoucher, type DaySummary } from '@/app/admin/actions';
+import { adminCheckIn, adminResendVoucher } from '@/app/admin/actions';
+import type { DayMetrics } from '@/lib/day-metrics';
 import { ADMIN_ACTION, ADMIN_INPUT } from './ui-constants';
-import { longDateEs, todayCaracas } from '@/lib/dates';
+import { longDateEs } from '@/lib/dates';
 import type { ReservationRow } from '@/lib/db/reservations';
 
-export function AdminDayView(props: { date: string; rows: ReservationRow[]; summary: DaySummary }) {
+export function AdminDayView(props: { date: string; today: string; rows: ReservationRow[]; metrics: DayMetrics }) {
   const router = useRouter();
   const [toast, setToast] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const [chip, setChip] = useState<ChipKey>('all');
-  const today = todayCaracas();
+  const today = props.today;
   const dismissToast = useCallback(() => setToast(null), []);
 
   const go = (d: string) => router.push(`/admin?date=${d}`);
@@ -40,7 +41,7 @@ export function AdminDayView(props: { date: string; rows: ReservationRow[]; summ
         {props.date !== today && <Button className={ADMIN_ACTION} onClick={() => go(today)}>Hoy</Button>}
       </div>
 
-      <MetricGrid summary={props.summary} onReviewPending={() => setChip('pending_payment')} />
+      <MetricGrid metrics={props.metrics} onReviewPending={() => setChip('pending_payment')} />
 
       <div className="rounded-2xl border bg-white p-4">
         <h2 className="font-extrabold">Reservas programadas</h2>
