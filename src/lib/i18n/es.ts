@@ -184,4 +184,13 @@ export const es = {
     childOne: '{count} niño',
     childOther: '{count} niños',
   },
+  amenities: {
+    heading: 'Lo que encuentras en el complejo',
+    body: 'Piscina, sombra, comida y todo lo necesario para pasar el día completo.',
+    scheduleHeading: 'Horario',
+    rulesHeading: 'Normas de la piscina',
+    // Texts for the ids listed in landingContent.rules (src/lib/landing-content.ts).
+    // Empty on purpose: only the owner can provide the real rules.
+    rules: {},
+  },
 };

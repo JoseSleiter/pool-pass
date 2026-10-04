@@ -175,4 +175,11 @@ export const en: Dictionary = {
     childOne: '{count} child',
     childOther: '{count} children',
   },
+  amenities: {
+    heading: "What you'll find at the club",
+    body: 'Pool, shade, food and everything you need to stay all day.',
+    scheduleHeading: 'Opening hours',
+    rulesHeading: 'Pool rules',
+    rules: {},
+  },
 };
