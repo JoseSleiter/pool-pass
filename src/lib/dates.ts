@@ -13,6 +13,34 @@ export function caracasTime(iso: string): string {
   }).format(new Date(iso));
 }
 
+/** Hour of day (0–23) in Venezuela time for an ISO timestamp. */
+export function caracasHour(iso: string): number {
+  const hour = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Caracas',
+    hour: 'numeric',
+    hourCycle: 'h23',
+  })
+    .formatToParts(new Date(iso))
+    .find((p) => p.type === 'hour');
+  return Number(hour?.value ?? 0) % 24;
+}
+
+/**
+ * Saturday + Sunday (YYYY-MM-DD) of the weekend to advertise, given today's
+ * Caracas date. On a Saturday or Sunday it is the current weekend.
+ */
+export function upcomingWeekend(today: string): { saturday: string; sunday: string } {
+  const base = new Date(`${today}T12:00:00Z`);
+  const dow = base.getUTCDay(); // 0 = Sunday … 6 = Saturday
+  const toSaturday = dow === 0 ? -1 : 6 - dow;
+  const shift = (days: number) => {
+    const d = new Date(base);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+  return { saturday: shift(toSaturday), sunday: shift(toSaturday + 1) };
+}
+
 /** "mar, 15 ene" — short Spanish date for summary cards. */
 export function shortDateEs(date: string): string {
   return new Intl.DateTimeFormat('es-VE', {
