@@ -38,11 +38,12 @@ async function openBooking(page: Page) {
 }
 
 // Single-card flow: the "Fecha de visita" tile reveals the inline calendar;
-// picking a date returns to the payment form. The default party is
-// 2 adultos · 1 niño, so specs that need >1 attendee don't touch the steppers.
+// picking a date does not close it (e005833), so "Listo" returns to the payment
+// form. The default party is 2 adultos · 1 niño, so specs that need >1 attendee don't touch the steppers.
 async function fillBookingStep(page: Page, date: string) {
   await page.getByRole('button', { name: /fecha de visita/i }).click();
   await goToDate(page, date);
+  await page.getByRole('button', { name: /^listo$/i }).click();
 }
 
 async function fillPaymentStep(page: Page, otp: string) {
