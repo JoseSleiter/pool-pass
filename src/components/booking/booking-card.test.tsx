@@ -68,6 +68,32 @@ describe('BookingCard', () => {
     expect(day('2099-03-14')).toHaveTextContent('Quedan 100');
   });
 
+  it('shows remaining spots for the selected date, not for today', () => {
+    renderWithI18n(
+      <BookingCard
+        prices={prices}
+        initialAvailability={{ '2099-03-12': 12, '2099-03-13': 0 }}
+        remaining={40}
+        dailyCapacity={100}
+        initialDate="2099-03-12"
+      />
+    );
+    expect(screen.getByText('Quedan 12 cupos para esta fecha')).toBeInTheDocument();
+    expect(screen.queryByText(/hoy/i)).not.toBeInTheDocument();
+  });
+
+  it('uses the daily capacity for a date with no bookings, and flags a full date', () => {
+    const { unmount } = renderWithI18n(
+      <BookingCard prices={prices} initialAvailability={{}} remaining={40} dailyCapacity={100} initialDate="2099-03-14" />
+    );
+    expect(screen.getByText('Quedan 100 cupos para esta fecha')).toBeInTheDocument();
+    unmount();
+    renderWithI18n(
+      <BookingCard prices={prices} initialAvailability={{ '2099-03-13': 0 }} remaining={40} dailyCapacity={100} initialDate="2099-03-13" />
+    );
+    expect(screen.getByText('Sin cupos para esta fecha')).toBeInTheDocument();
+  });
+
   it('shows the default party total in the summary (2 adultos · 1 niño = $35)', () => {
     renderCard();
     expect(screen.getByTestId('total-usd')).toHaveTextContent('$35 USD');
@@ -166,7 +192,7 @@ describe('BookingCard', () => {
 
   it('renders in English and shows English validation messages', async () => {
     renderWithI18n(<BookingCard prices={prices} initialAvailability={{}} remaining={40} />, { locale: 'en' });
-    expect(screen.getByText('Spots left today: 40')).toBeInTheDocument();
+    expect(screen.getByText('40 spots left on this date')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /continue/i }));
     expect(screen.getByRole('heading', { name: /details to confirm your booking/i })).toBeInTheDocument();
     await user.type(screen.getByLabelText(/^first name$/i), 'Ana');

@@ -16,6 +16,7 @@ import {
 } from '@/app/actions/booking';
 import { totalUsd, usdToVes } from '@/lib/money';
 import { visitLabel } from '@/lib/dates';
+import { remainingOn } from '@/lib/availability';
 import { paymentSchema } from '@/lib/schemas';
 import { useLocale, useT } from '@/lib/i18n/provider';
 import { formatParty, interpolate } from '@/lib/i18n/format';
@@ -60,7 +61,10 @@ export function BookingCard(props: {
 
   const usd = totalUsd(adults, children, props.prices);
   const attendeeCount = adults + children;
-  const remaining = props.remaining;
+  // Spots left on the *selected* date (props.remaining is today's count and only a
+  // fallback when the page didn't pass the daily capacity).
+  const remaining =
+    remainingOn(date, availability, props.dailyCapacity) ?? props.remaining;
 
   function setField<K extends keyof PayFormValues>(key: K, value: PayFormValues[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -153,8 +157,8 @@ export function BookingCard(props: {
         <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-secondary-foreground">
           <span className={`h-2 w-2 rounded-full ${remaining > 0 ? 'bg-teal' : 'bg-destructive'}`} />
           {remaining > 0
-            ? interpolate(t.booking.slotsToday, { count: remaining })
-            : t.booking.noSlotsToday}
+            ? interpolate(t.booking.slotsOnDate, { count: remaining })
+            : t.booking.noSlotsOnDate}
         </p>
       )}
 
