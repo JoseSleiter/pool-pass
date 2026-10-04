@@ -108,4 +108,37 @@ describe('BookingCard', () => {
     expect(screen.getByAltText(/código qr/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /whatsapp/i })).toBeInTheDocument();
   });
+
+  it('renders in English and shows English validation messages', async () => {
+    renderWithI18n(<BookingCard prices={prices} initialAvailability={{}} remaining={40} />, { locale: 'en' });
+    expect(screen.getByText('Spots left today: 40')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /continue/i }));
+    expect(screen.getByRole('heading', { name: /details to confirm your booking/i })).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/^first name$/i), 'Ana');
+    await user.type(screen.getByLabelText(/last name/i), 'Pérez');
+    await user.type(screen.getByLabelText(/^email$/i), 'ana@example.com');
+    await user.type(screen.getByLabelText(/document number/i), '12345678');
+    await user.type(screen.getByLabelText(/^phone$/i), '123');
+    await user.selectOptions(screen.getByLabelText(/^bank$/i), '0102');
+    await user.type(screen.getByLabelText(/c2p payment key/i), '123456');
+    await user.click(screen.getByRole('button', { name: /confirm and pay/i }));
+    expect(submitBookingAndPay).not.toHaveBeenCalled();
+    expect(await screen.findByText(/invalid venezuelan phone number/i)).toBeInTheDocument();
+  });
+
+  it('translates a capacity failure from the server in English', async () => {
+    vi.mocked(submitBookingAndPay).mockResolvedValue({ ok: false, error: 'capacity', remaining: 1 });
+    renderWithI18n(<BookingCard prices={prices} initialAvailability={{}} remaining={40} />, { locale: 'en' });
+    await user.click(screen.getByRole('button', { name: /continue/i }));
+    await user.type(screen.getByLabelText(/^first name$/i), 'Ana');
+    await user.type(screen.getByLabelText(/last name/i), 'Pérez');
+    await user.type(screen.getByLabelText(/^email$/i), 'ana@example.com');
+    await user.type(screen.getByLabelText(/document number/i), '12345678');
+    await user.type(screen.getByLabelText(/^phone$/i), '04141234567');
+    await user.selectOptions(screen.getByLabelText(/^bank$/i), '0102');
+    await user.type(screen.getByLabelText(/c2p payment key/i), '123456');
+    await user.click(screen.getByRole('button', { name: /confirm and pay/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('spots left: 1');
+    expect(screen.getByRole('heading', { name: /when are you coming/i })).toBeInTheDocument();
+  });
 });
