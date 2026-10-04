@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Fredoka, Rubik, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
+import { ADMIN_SCOPE_HEADER, documentLocale } from "@/lib/admin-scope";
 import { getDictionary, getLocale } from "@/lib/i18n";
 import { I18nProvider } from "@/lib/i18n/provider";
 import { landingContent } from "@/lib/landing-content";
@@ -43,8 +45,14 @@ function siteUrl(): URL {
 // Resolved once at module load so a bad env value warns once, not per request.
 const metadataBase = siteUrl();
 
+/** pp_lang locale, except on /admin/* (marked by the middleware), which is Spanish-only. */
+async function requestLocale() {
+  const [locale, requestHeaders] = await Promise.all([getLocale(), headers()]);
+  return documentLocale(locale, requestHeaders.get(ADMIN_SCOPE_HEADER));
+}
+
 export async function generateMetadata(): Promise<Metadata> {
-  const t = getDictionary(await getLocale());
+  const t = getDictionary(await requestLocale());
   const club = landingContent.clubName;
   return {
     metadataBase,
@@ -68,7 +76,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await getLocale();
+  const locale = await requestLocale();
   return (
     <html
       lang={locale}
