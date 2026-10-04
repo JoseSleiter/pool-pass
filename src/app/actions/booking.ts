@@ -8,7 +8,9 @@ import { payC2p, mercantilConfigFromEnv } from '@/lib/mercantil/client';
 import {
   reserveSlots, confirmReservation, failReservation,
   getSettings, readRateCache, writeRateCache, monthAvailability, sumPartySize,
+  listOverrides,
 } from '@/lib/db/reservations';
+import type { TodayCapacity } from '@/lib/availability';
 import { checkRateLimit } from '@/lib/db/rate-limit';
 import { sendVoucherEmail } from '@/lib/email/send';
 import { todayCaracas, upcomingWeekend } from '@/lib/dates';
@@ -80,6 +82,23 @@ export async function getTodayRemaining(): Promise<number> {
   if (avail[today] !== undefined) return avail[today];
   const s = await getSettings();
   return s.daily_capacity;
+}
+
+/**
+ * Today's (Caracas) live numbers for the landing hero: remaining slots, today's
+ * capacity (the day's override, else the default) and the default daily
+ * capacity, which is what any day absent from monthAvailability has free.
+ */
+export async function getTodayCapacity(): Promise<TodayCapacity> {
+  const today = todayCaracas();
+  const [avail, settings, overrides] = await Promise.all([
+    monthAvailability(today.slice(0, 7)),
+    getSettings(),
+    listOverrides(),
+  ]);
+  const dailyCapacity = settings.daily_capacity;
+  const capacity = overrides.find((o) => o.date === today)?.capacity ?? dailyCapacity;
+  return { remaining: avail[today] ?? capacity, capacity, dailyCapacity };
 }
 
 /**
