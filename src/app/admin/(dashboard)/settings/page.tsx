@@ -1,10 +1,19 @@
-import { adminGetSettings } from '../../actions';
+import { adminGetSettings, adminListRoles } from '../../actions';
 import { requireAdmin } from '@/lib/auth/require-admin';
 import { SettingsForm } from '@/components/admin/settings-form';
+import { parseSettingsTab } from '@/components/admin/settings/tab-param';
+import { todayCaracas } from '@/lib/dates';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminSettings() {
+// Module-level helper keeps the component body free of impure calls (react-hooks/purity).
+function renderedAt(): number {
+  return Date.now();
+}
+
+export default async function AdminSettings(props: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   // Settings are owner-only; show a notice instead of an error page to operators.
   const me = await requireAdmin();
   if (me.role !== 'owner') {
@@ -14,6 +23,20 @@ export default async function AdminSettings() {
       </p>
     );
   }
-  const { settings, overrides } = await adminGetSettings();
-  return <SettingsForm settings={settings} overrides={overrides} />;
+  const [{ settings, overrides }, roles, sp] = await Promise.all([
+    adminGetSettings(),
+    adminListRoles(),
+    props.searchParams,
+  ]);
+  return (
+    <SettingsForm
+      settings={settings}
+      overrides={overrides}
+      roles={roles}
+      currentEmail={me.email}
+      initialTab={parseSettingsTab(sp.tab)}
+      today={todayCaracas()}
+      now={renderedAt()}
+    />
+  );
 }
