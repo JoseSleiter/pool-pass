@@ -2,7 +2,8 @@
 
 import { headers } from 'next/headers';
 import { processBooking, type BookingResult } from '@/lib/booking/process';
-import { getBcvRate, fetchBcvRate } from '@/lib/bcv';
+import { getBcvRate, fetchBcvRate, type RateDeps } from '@/lib/bcv';
+import { recordBcvRate } from '@/lib/bcv-history';
 import { payC2p, mercantilConfigFromEnv } from '@/lib/mercantil/client';
 import {
   reserveSlots, confirmReservation, failReservation,
@@ -16,6 +17,18 @@ import { todayCaracas } from '@/lib/dates';
 // reservation holds a slot for 10 min, so unthrottled spam could exhaust
 // daily capacity; this caps that abuse while leaving room for honest retries.
 const BOOKING_MAX_PER_MINUTE = 8;
+
+// Shared BCV deps. A fresh fetch refreshes the settings cache AND appends a
+// bcv_rate_history row ('auto' = triggered by app traffic, not the admin).
+function rateDeps(): RateDeps {
+  return {
+    fetchRate: fetchBcvRate,
+    readCache: readRateCache,
+    writeCache: writeRateCache,
+    recordHistory: (rate, fetchedAt) => recordBcvRate(rate, fetchedAt, 'auto'),
+    now: Date.now,
+  };
+}
 
 export async function submitBookingAndPay(raw: unknown): Promise<BookingResult> {
   const h = await headers();
@@ -34,13 +47,7 @@ export async function submitBookingAndPay(raw: unknown): Promise<BookingResult> 
       return { adult: Number(s.adult_price_usd), child: Number(s.child_price_usd) };
     },
     reserve: reserveSlots,
-    getRate: () =>
-      getBcvRate({
-        fetchRate: fetchBcvRate,
-        readCache: readRateCache,
-        writeCache: writeRateCache,
-        now: Date.now,
-      }),
+    getRate: () => getBcvRate(rateDeps()),
     pay: (req) => payC2p(req, mercantilConfigFromEnv()),
     confirm: confirmReservation,
     fail: failReservation,
@@ -49,12 +56,7 @@ export async function submitBookingAndPay(raw: unknown): Promise<BookingResult> 
 }
 
 export async function getCurrentRate(): Promise<number | null> {
-  return getBcvRate({
-    fetchRate: fetchBcvRate,
-    readCache: readRateCache,
-    writeCache: writeRateCache,
-    now: Date.now,
-  });
+  return getBcvRate(rateDeps());
 }
 
 export async function getAvailability(month: string): Promise<Record<string, number>> {
