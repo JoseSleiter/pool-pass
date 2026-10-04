@@ -21,6 +21,16 @@ export interface ReservationRow {
   checked_in_at: string | null; created_at: string;
 }
 
+export interface ReservationQuery {
+  dateFrom?: string; dateTo?: string;           // YYYY-MM-DD, inclusive
+  statuses?: ReservationRow['status'][];
+  q?: string;                                    // nombre, apellido, código PP-XXXX o número de documento
+  guestType?: 'individual' | 'family';
+  sort?: { by: 'date' | 'code' | 'name' | 'guests' | 'total_usd' | 'status'; dir: 'asc' | 'desc' };
+  page: number;                                  // 1-based
+  pageSize: 10 | 25 | 50;
+}
+
 export interface SettingsRow {
   daily_capacity: number;
   adult_price_usd: number;
