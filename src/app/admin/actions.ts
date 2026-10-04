@@ -11,7 +11,8 @@ import {
   type ReservationRow,
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
-import { logAudit } from '@/lib/audit';
+import { logAudit, listAudit, type AuditRow } from '@/lib/audit';
+import { listBcvHistory, type BcvHistoryRow } from '@/lib/bcv-history';
 
 export interface DaySummary {
   capacity: number;
@@ -195,4 +196,25 @@ export async function adminUpsertRole(raw: unknown): Promise<{ ok: boolean; mess
   await logAudit({ actor: me.email, action: 'role.upsert', target: email, details: { role } });
   revalidatePath('/admin/settings');
   return { ok: true };
+}
+
+// ── Paginated read-only listings ────────────────────────────────────────────
+
+const pageSchema = z.object({
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1).max(100),
+});
+
+export async function adminListAudit(raw: unknown): Promise<{ rows: AuditRow[]; total: number }> {
+  await requireAdmin({ role: 'owner' });
+  const parsed = pageSchema.safeParse(raw);
+  if (!parsed.success) throw new Error('Invalid page');
+  return listAudit(parsed.data);
+}
+
+export async function adminListBcvHistory(raw: unknown): Promise<{ rows: BcvHistoryRow[]; total: number }> {
+  await requireAdmin();
+  const parsed = pageSchema.safeParse(raw);
+  if (!parsed.success) throw new Error('Invalid page');
+  return listBcvHistory(parsed.data);
 }

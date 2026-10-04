@@ -41,7 +41,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 import {
   adminListReservations, adminGetDaySummary, adminCheckIn, adminResendVoucher,
   adminGetSettings, adminUpdateSettings, adminUpsertOverride, adminDeleteOverride,
-  adminListRoles, adminUpsertRole,
+  adminListRoles, adminUpsertRole, adminListAudit, adminListBcvHistory,
 } from './actions';
 import {
   listReservationsByDate, getReservation, checkInReservation, getSettings,
@@ -49,7 +49,8 @@ import {
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
 import { getAdminRole, listAdminRoles, upsertAdminRole } from '@/lib/db/admin-roles';
-import { logAudit } from '@/lib/audit';
+import { logAudit, listAudit } from '@/lib/audit';
+import { listBcvHistory } from '@/lib/bcv-history';
 
 // Default for every test: an allowlisted email with no admin_roles row = owner.
 // (vi.clearAllMocks only clears call history, so a test that switches the role
@@ -420,5 +421,53 @@ describe('role management (owner only)', () => {
     const res = await adminUpsertRole({ email: OPS_EMAIL, role: 'operator' });
     expect(res).toEqual({ ok: false, message: 'No se pudo guardar.' });
     expect(logAudit).not.toHaveBeenCalled();
+  });
+});
+
+describe('paginated read actions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = { id: 'admin-1', email: ADMIN_EMAIL };
+  });
+
+  it('adminListAudit forwards the page to listAudit for an owner', async () => {
+    const page = {
+      rows: [{
+        id: 1, at: '2030-01-01T00:00:00Z', actor_email: ADMIN_EMAIL,
+        action: 'settings.update' as const, target: null, details: {},
+      }],
+      total: 1,
+    };
+    vi.mocked(listAudit).mockResolvedValue(page);
+    await expect(adminListAudit({ page: 2, pageSize: 25 })).resolves.toEqual(page);
+    expect(listAudit).toHaveBeenCalledWith({ page: 2, pageSize: 25 });
+  });
+
+  it('adminListAudit rejects an operator with Forbidden', async () => {
+    vi.mocked(getAdminRole).mockResolvedValue('operator');
+    await expect(adminListAudit({ page: 1, pageSize: 10 })).rejects.toThrow('Forbidden');
+    expect(listAudit).not.toHaveBeenCalled();
+  });
+
+  it('adminListAudit rejects invalid paging', async () => {
+    await expect(adminListAudit({ page: 0, pageSize: 10 })).rejects.toThrow('Invalid page');
+    await expect(adminListAudit({ page: 1, pageSize: 500 })).rejects.toThrow('Invalid page');
+    await expect(adminListAudit('nope')).rejects.toThrow('Invalid page');
+    expect(listAudit).not.toHaveBeenCalled();
+  });
+
+  it('adminListBcvHistory is available to an operator', async () => {
+    vi.mocked(getAdminRole).mockResolvedValue('operator');
+    const page = { rows: [{ id: 1, fetched_at: '2030-01-01T00:00:00Z', rate: 36.5, source: 'auto' }], total: 1 };
+    vi.mocked(listBcvHistory).mockResolvedValue(page);
+    await expect(adminListBcvHistory({ page: 1, pageSize: 10 })).resolves.toEqual(page);
+    expect(listBcvHistory).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
+  });
+
+  it('adminListBcvHistory rejects without a session and with invalid paging', async () => {
+    await expect(adminListBcvHistory({ page: 1.5, pageSize: 10 })).rejects.toThrow('Invalid page');
+    mockUser = null;
+    await expect(adminListBcvHistory({ page: 1, pageSize: 10 })).rejects.toThrow('Unauthorized');
+    expect(listBcvHistory).not.toHaveBeenCalled();
   });
 });
