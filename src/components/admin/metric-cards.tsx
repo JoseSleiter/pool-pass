@@ -1,6 +1,144 @@
 'use client';
 
+import { useId } from 'react';
+import { CalendarX2, Users, type LucideIcon } from 'lucide-react';
 import type { DaySummary } from '@/app/admin/actions';
+import {
+  occupancyLevel, occupancyPercent, type DayMetrics, type OccupancyLevel,
+} from '@/lib/day-metrics';
+import { cn } from '@/lib/utils';
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/** KPI card shell: a labelled region (h2) so screen readers and tests can find each card by name. */
+function MetricCard(props: {
+  title: string;
+  icon: LucideIcon;
+  level?: string;
+  alert?: boolean;
+  children: React.ReactNode;
+}) {
+  const titleId = useId();
+  const Icon = props.icon;
+  return (
+    <section
+      aria-labelledby={titleId}
+      data-level={props.level}
+      className={cn(
+        'flex min-h-44 flex-col rounded-2xl border bg-white p-4 shadow-sm',
+        props.alert && 'border-amber-300 bg-amber-50',
+      )}
+    >
+      <h2 id={titleId} className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <Icon aria-hidden className="size-4" />
+        {props.title}
+      </h2>
+      <div className="mt-3 flex flex-1 flex-col">{props.children}</div>
+    </section>
+  );
+}
+
+const LEVEL_STROKE: Record<OccupancyLevel, string> = {
+  normal: 'stroke-teal',
+  high: 'stroke-amber-500',
+  peak: 'stroke-coral',
+};
+
+const LEVEL_CHIP: Record<OccupancyLevel, string> = {
+  normal: 'bg-mint text-navy',
+  high: 'bg-amber-100 text-amber-800',
+  peak: 'bg-coral/15 text-red-800',
+};
+
+function levelLabel(percent: number): string {
+  if (percent >= 100) return 'Lleno';
+  const level = occupancyLevel(percent);
+  if (level === 'peak') return 'Casi lleno';
+  if (level === 'high') return 'Alta demanda';
+  return 'Normal';
+}
+
+const GAUGE_R = 30;
+const GAUGE_C = 2 * Math.PI * GAUGE_R;
+
+/** Decorative radial gauge; the accessible value lives on the role="meter" wrapper. */
+function RadialGauge(props: { percent: number; level: OccupancyLevel }) {
+  const fill = Math.min(100, Math.max(0, props.percent));
+  return (
+    <svg viewBox="0 0 72 72" aria-hidden className="size-20 -rotate-90">
+      <circle cx="36" cy="36" r={GAUGE_R} fill="none" strokeWidth="8" className="stroke-slate-200" />
+      <circle
+        data-testid="occupancy-arc"
+        cx="36" cy="36" r={GAUGE_R} fill="none" strokeWidth="8"
+        strokeLinecap={fill > 0 ? 'round' : 'butt'}
+        strokeDasharray={GAUGE_C}
+        strokeDashoffset={GAUGE_C * (1 - fill / 100)}
+        className={cn(LEVEL_STROKE[props.level], 'motion-safe:transition-[stroke-dashoffset] motion-safe:duration-500')}
+      />
+    </svg>
+  );
+}
+
+export function OccupancyCard(props: { metrics: DayMetrics }) {
+  const { capacity, defaultCapacity, override, confirmedPeople: people } = props.metrics;
+  const percent = occupancyPercent(people, capacity);
+
+  if (percent === null) {
+    const why = override
+      ? `Día cerrado por excepción${override.reason ? ` · ${override.reason}` : ''}`
+      : 'La capacidad diaria está en 0';
+    return (
+      <MetricCard title="Ocupación" icon={Users} level="closed">
+        <p className="flex items-center gap-2 text-2xl font-extrabold text-navy">
+          <CalendarX2 aria-hidden className="size-6 text-coral" />
+          Cerrado
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{why}</p>
+        {people > 0 && (
+          <p className="mt-2 text-sm font-semibold text-red-800">
+            {plural(people, 'persona', 'personas')} con reserva este día
+          </p>
+        )}
+      </MetricCard>
+    );
+  }
+
+  const level = occupancyLevel(percent);
+  return (
+    <MetricCard title="Ocupación" icon={Users} level={level}>
+      <div className="flex items-center gap-4">
+        <div
+          role="meter"
+          aria-label="Ocupación del día"
+          aria-valuemin={0}
+          aria-valuemax={capacity}
+          aria-valuenow={Math.min(people, capacity)}
+          aria-valuetext={`${people} de ${capacity} personas (${percent} %)`}
+          className="relative size-20 shrink-0"
+        >
+          <RadialGauge percent={percent} level={level} />
+          <span aria-hidden className="absolute inset-0 grid place-items-center text-base font-extrabold text-navy">
+            {percent} %
+          </span>
+        </div>
+        <div>
+          <p className="text-2xl font-extrabold text-navy">
+            {people}<span className="text-sm font-normal text-muted-foreground"> / {capacity}</span>
+          </p>
+          <p className="text-xs text-muted-foreground">personas confirmadas</p>
+          <span className={cn('mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold', LEVEL_CHIP[level])}>
+            {levelLabel(percent)}
+          </span>
+        </div>
+      </div>
+      {override && (
+        <p className="mt-auto pt-3 text-xs text-muted-foreground">
+          {`Capacidad especial (normal: ${defaultCapacity})${override.reason ? ` · ${override.reason}` : ''}`}
+        </p>
+      )}
+    </MetricCard>
+  );
+}
 
 function Metric(props: { label: string; children: React.ReactNode; sub?: React.ReactNode; className?: string }) {
   return (
