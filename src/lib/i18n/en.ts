@@ -116,6 +116,12 @@ export const en: Dictionary = {
     totalUpdates: 'Your total updates automatically',
     decrease: 'Decrease {label}',
     increase: 'Increase {label}',
+    breakdownTitle: 'Your order summary',
+    lineItem: '{label} × {count} · {price} each',
+    totalUsd: 'Total in US dollars',
+    bcvRate: "Today's BCV rate",
+    totalVes: 'Total to pay in bolívares',
+    rateAtPayment: "The bolívar amount is calculated at the day's BCV rate.",
   },
   pay: {
     title: 'Details to confirm your booking',
@@ -134,6 +140,8 @@ export const en: Dictionary = {
     otpHint: "Generate your C2P key in your bank's app before paying.",
     submit: 'Confirm and pay',
     submitting: 'Processing…',
+    phoneHint: 'Carriers: {prefixes}',
+    showKey: 'Show key',
   },
   pending: {
     title: 'Payment being verified',
@@ -152,6 +160,13 @@ export const en: Dictionary = {
     attendees: 'Guests:',
     paid: 'Paid:',
     whatsapp: 'Questions? Message us on WhatsApp',
+    howToEnter: 'How to get in',
+    step1: 'Arrive on {date} with your ID.',
+    step2: 'At the entrance, show this QR code on your phone or printed.',
+    step3: 'Staff scan it, check your ID and register your entry.',
+    print: 'Download / Print',
+    share: 'Share on WhatsApp',
+    shareText: 'My pass for {club} on {date} · Code {code}',
   },
   errors: {
     noAttendees: 'Add at least one guest to continue.',
@@ -187,5 +202,10 @@ export const en: Dictionary = {
     scheduleHeading: 'Opening hours',
     rulesHeading: 'Pool rules',
     rules: {},
+  },
+  trust: {
+    title: 'Payment security',
+    c2pMercantil: 'Pago Móvil C2P via Banco Mercantil',
+    encrypted: 'Payment data encrypted (AES-256)',
   },
 };
