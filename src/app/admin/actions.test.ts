@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 let mockUser: { id: string; email?: string } | null = null;
 
 const ADMIN_EMAIL = 'admin@club.com';
-process.env.ADMIN_EMAILS = ADMIN_EMAIL;
+const OPS_EMAIL = 'ops@club.com';
+process.env.ADMIN_EMAILS = `${ADMIN_EMAIL},${OPS_EMAIL}`;
 
 vi.mock('@/lib/db/ssr-client', () => ({
   ssrClient: vi.fn(async () => ({
@@ -20,6 +21,18 @@ vi.mock('@/lib/db/reservations', () => ({
   upsertOverride: vi.fn(),
   deleteOverride: vi.fn(),
 }));
+vi.mock('@/lib/db/admin-roles', () => ({
+  getAdminRole: vi.fn(async () => null),
+  listAdminRoles: vi.fn(async () => []),
+  upsertAdminRole: vi.fn(async () => {}),
+}));
+vi.mock('@/lib/audit', () => ({
+  logAudit: vi.fn(async () => {}),
+  listAudit: vi.fn(async () => ({ rows: [], total: 0 })),
+}));
+vi.mock('@/lib/bcv-history', () => ({
+  listBcvHistory: vi.fn(async () => ({ rows: [], total: 0 })),
+}));
 vi.mock('@/lib/email/send', () => ({
   sendVoucherEmail: vi.fn(),
 }));
@@ -34,6 +47,14 @@ import {
   updateSettings, listOverrides, upsertOverride, deleteOverride,
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
+import { getAdminRole } from '@/lib/db/admin-roles';
+
+// Default for every test: an allowlisted email with no admin_roles row = owner.
+// (vi.clearAllMocks only clears call history, so a test that switches the role
+// must not leak it — this resets it before every test.)
+beforeEach(() => {
+  vi.mocked(getAdminRole).mockResolvedValue(null);
+});
 
 describe('admin actions auth gating (no user)', () => {
   beforeEach(() => {
