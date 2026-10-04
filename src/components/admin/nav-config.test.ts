@@ -8,7 +8,7 @@ import {
 const hrefs = (groups: NavGroup[]) => groups.flatMap((g) => g.items.map((i) => i.href));
 
 describe('NAV_GROUPS (roadmap §3.4 contract)', () => {
-  it('declares every admin route in its group, with only Hoy and Configuración ready', () => {
+  it('declares every admin route in its group, with finance and audit ready', () => {
     const shape = NAV_GROUPS.map((g) => ({
       label: g.label,
       items: g.items.map((i) => ({ href: i.href, label: i.label, ownerOnly: !!i.ownerOnly, ready: i.ready })),
@@ -19,12 +19,12 @@ describe('NAV_GROUPS (roadmap §3.4 contract)', () => {
         { href: '/admin/reservations', label: 'Reservas', ownerOnly: false, ready: false },
       ] },
       { label: 'Finanzas', items: [
-        { href: '/admin/finance/transactions', label: 'Transacciones C2P', ownerOnly: false, ready: false },
-        { href: '/admin/finance/bcv', label: 'Tasas BCV', ownerOnly: false, ready: false },
+        { href: '/admin/finance/transactions', label: 'Transacciones C2P', ownerOnly: false, ready: true },
+        { href: '/admin/finance/bcv', label: 'Tasas BCV', ownerOnly: false, ready: true },
       ] },
       { label: 'Gestión', items: [
         { href: '/admin/settings', label: 'Configuración', ownerOnly: true, ready: true },
-        { href: '/admin/audit', label: 'Auditoría', ownerOnly: true, ready: false },
+        { href: '/admin/audit', label: 'Auditoría', ownerOnly: true, ready: true },
       ] },
     ]);
   });
@@ -33,14 +33,16 @@ describe('NAV_GROUPS (roadmap §3.4 contract)', () => {
 describe('visibleNavGroups', () => {
   it('shows an owner only the ready items and drops empty groups', () => {
     const groups = visibleNavGroups('owner');
-    expect(groups.map((g) => g.label)).toEqual(['Operaciones', 'Gestión']);
-    expect(hrefs(groups)).toEqual(['/admin', '/admin/settings']);
+    expect(groups.map((g) => g.label)).toEqual(['Operaciones', 'Finanzas', 'Gestión']);
+    expect(hrefs(groups)).toEqual([
+      '/admin', '/admin/finance/transactions', '/admin/finance/bcv', '/admin/settings', '/admin/audit',
+    ]);
   });
 
   it('hides owner-only items from an operator', () => {
     const groups = visibleNavGroups('operator');
-    expect(groups.map((g) => g.label)).toEqual(['Operaciones']);
-    expect(hrefs(groups)).toEqual(['/admin']);
+    expect(groups.map((g) => g.label)).toEqual(['Operaciones', 'Finanzas']);
+    expect(hrefs(groups)).toEqual(['/admin', '/admin/finance/transactions', '/admin/finance/bcv']);
   });
 
   it('applies ready and role independently', () => {
