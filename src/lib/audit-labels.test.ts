@@ -14,7 +14,7 @@ describe('AUDIT_ACTION_LABELS', () => {
 
   it('covers every action of the roadmap §3.2 contract', () => {
     expect([...AUDIT_ACTIONS].sort()).toEqual([
-      'override.delete', 'override.upsert', 'reservation.check_in',
+      'bcv.refresh', 'override.delete', 'override.upsert', 'reservation.check_in',
       'reservation.resend_voucher', 'role.upsert', 'settings.update',
     ]);
   });
