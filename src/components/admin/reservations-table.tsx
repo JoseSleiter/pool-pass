@@ -102,6 +102,7 @@ export function ReservationsTable(props: {
           open={detailId !== null}
           onOpenChange={(o) => { if (!o) setDetailId(null); }}
           onStartCheckin={() => { setDetailId(null); setCheckinId(detail.id); }}
+          onResend={props.onResend}
         />
       )}
       {checkin && (

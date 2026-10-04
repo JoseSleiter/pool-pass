@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ReservationsTable } from './reservations-table';
 import type { ReservationRow } from '@/lib/db/reservations';
@@ -53,5 +53,13 @@ describe('ReservationsTable', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Check-in$/i }));
     await userEvent.click(await screen.findByRole('button', { name: /Aprobar check-in/i }));
     expect(onCheckIn).toHaveBeenCalledWith(rows[0].id);
+  });
+  it('resends the voucher from the detail drawer', async () => {
+    const onResend = vi.fn();
+    render(<ReservationsTable rows={[rows[0]]} today={TODAY} onCheckIn={vi.fn()} onResend={onResend} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Ver detalle' }));
+    const drawer = await screen.findByRole('dialog', { name: 'Detalle de la reserva' });
+    await userEvent.click(within(drawer).getByRole('button', { name: /Reenviar voucher/i }));
+    expect(onResend).toHaveBeenCalledWith(rows[0].id);
   });
 });
