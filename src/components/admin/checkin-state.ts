@@ -1,3 +1,4 @@
+import { caracasTime } from '@/lib/dates';
 import type { ReservationRow } from '@/lib/db/reservations';
 
 export type InvalidReason = 'not-found' | 'pending' | 'failed' | 'expired';
@@ -30,3 +31,24 @@ export const INVALID_REASON_TEXT: Record<InvalidReason, string> = {
   failed: 'El pago fue rechazado: la reserva no está confirmada.',
   expired: 'La reserva expiró sin completar el pago.',
 };
+
+/**
+ * "10:00 a. m." — 12h clock in Caracas. Built on caracasTime (h23) instead of
+ * Intl hour12 output, whose spacing/period glyphs vary across ICU versions.
+ */
+export function caracasTime12(iso: string): string {
+  const [hh, mm] = caracasTime(iso).split(':');
+  const h = Number(hh);
+  return `${h % 12 || 12}:${mm} ${h < 12 ? 'a. m.' : 'p. m.'}`;
+}
+
+/** "domingo, 20 de enero de 2030" — includes the year so an old ticket is obvious. */
+export function reservationDateEs(date: string): string {
+  return new Intl.DateTimeFormat('es-VE', {
+    timeZone: 'America/Caracas',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(`${date}T12:00:00-04:00`));
+}

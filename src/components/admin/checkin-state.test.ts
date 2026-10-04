@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifyCheckin, INVALID_REASON_TEXT } from './checkin-state';
+import { classifyCheckin, INVALID_REASON_TEXT, caracasTime12, reservationDateEs } from './checkin-state';
 import type { ReservationRow } from '@/lib/db/reservations';
 
 const TODAY = '2030-01-15';
@@ -74,5 +74,26 @@ describe('INVALID_REASON_TEXT', () => {
 
   it('pending payment is called out explicitly', () => {
     expect(INVALID_REASON_TEXT.pending).toMatch(/^Pago pendiente/);
+  });
+});
+
+describe('caracasTime12', () => {
+  it.each([
+    ['2030-01-15T14:00:00Z', '10:00 a. m.'], // UTC-4
+    ['2030-01-15T23:05:00Z', '7:05 p. m.'],
+    ['2030-01-15T16:30:00Z', '12:30 p. m.'], // noon is p. m.
+    ['2030-01-15T04:15:00Z', '12:15 a. m.'], // midnight is 12, not 0
+  ])('%s → %s', (iso, expected) => {
+    expect(caracasTime12(iso)).toBe(expected);
+  });
+});
+
+describe('reservationDateEs', () => {
+  it('long Spanish date with weekday and year', () => {
+    expect(reservationDateEs('2030-01-20')).toBe('domingo, 20 de enero de 2030');
+  });
+
+  it('does not shift the day near year end', () => {
+    expect(reservationDateEs('2030-12-31')).toBe('martes, 31 de diciembre de 2030');
   });
 });
