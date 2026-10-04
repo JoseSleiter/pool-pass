@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
-import type { ReservationRow } from './reservations';
+import { searchReservations, type ReservationRow, type ReservationQuery } from './reservations';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -76,5 +76,111 @@ describe('search_text generated column', () => {
       .from('reservations').select('search_text').eq('code', 'PP-ZQ002').single();
     expect(error).toBeNull();
     expect(data?.search_text).toBe('luis gomez pp-zq002 22222222');
+  });
+});
+
+const codes = (rows: ReservationRow[]) => rows.map((r) => r.code);
+const inMain = (q: Partial<ReservationQuery> = {}): ReservationQuery => ({
+  dateFrom: MAIN_FROM, dateTo: MAIN_TO, page: 1, pageSize: 10, ...q,
+});
+
+describe('searchReservations', () => {
+  it('returns every row in range, newest visit date first, with an exact total', async () => {
+    const res = await searchReservations(inMain());
+    expect(res.total).toBe(5);
+    expect(res.rows.map((r) => r.date)).toEqual([
+      '2031-04-20', '2031-04-20', '2031-04-12', '2031-04-05', '2031-04-05',
+    ]);
+  });
+
+  it('returns rows shaped like ReservationRow (no party_size leak)', async () => {
+    const { rows } = await searchReservations(inMain({ q: 'ZQ002' }));
+    expect(rows).toHaveLength(1);
+    expect(Object.keys(rows[0]).sort()).toEqual([
+      'adults', 'bcv_rate', 'checked_in_at', 'children', 'code', 'created_at', 'date',
+      'email', 'expires_at', 'first_name', 'id', 'id_number', 'id_type', 'last_name',
+      'payment_ref', 'status', 'total_usd', 'total_ves',
+    ]);
+  });
+
+  it('filters by inclusive date range', async () => {
+    const res = await searchReservations(inMain({
+      dateFrom: '2031-04-05', dateTo: '2031-04-12', sort: { by: 'code', dir: 'asc' },
+    }));
+    expect(codes(res.rows)).toEqual(['PP-ZQ001', 'PP-ZQ002', 'PP-ZQ003']);
+    expect(res.total).toBe(3);
+  });
+
+  it('filters by statuses', async () => {
+    const res = await searchReservations(inMain({
+      statuses: ['failed', 'expired'], sort: { by: 'code', dir: 'asc' },
+    }));
+    expect(codes(res.rows)).toEqual(['PP-ZQ004', 'PP-ZQ005']);
+  });
+
+  it('filters by guest type derived from adults + children', async () => {
+    const solo = await searchReservations(inMain({ guestType: 'individual', sort: { by: 'code', dir: 'asc' } }));
+    expect(codes(solo.rows)).toEqual(['PP-ZQ001', 'PP-ZQ003']);
+    const family = await searchReservations(inMain({ guestType: 'family', sort: { by: 'code', dir: 'asc' } }));
+    expect(codes(family.rows)).toEqual(['PP-ZQ002', 'PP-ZQ004', 'PP-ZQ005']);
+  });
+
+  it.each([
+    ['first name, case-insensitive', 'ana', ['PP-ZQ001', 'PP-ZQ005']],
+    ['last name with accent', 'PÉREZ', ['PP-ZQ001']],
+    ['accented last name without accent', 'perez', ['PP-ZQ001']],
+    ['accented last name, lowercase accent', 'pérez', ['PP-ZQ001']],
+    ['accented last name, uppercase no accent', 'PEREZ', ['PP-ZQ001']],
+    ['another accented name (Gómez) via gomez', 'gomez', ['PP-ZQ002']],
+    ['accented query against unaccented data (Garcia)', 'García', ['PP-ZQ003']],
+    ['accent-free multi-term', 'ana perez', ['PP-ZQ001']],
+    ['every term must match (AND across terms)', 'ana pérez', ['PP-ZQ001']],
+    ['reservation code fragment', 'zq003', ['PP-ZQ003']],
+    ['id number fragment', '3333', ['PP-ZQ003']],
+    ['dotted id number', '33.333.333', ['PP-ZQ003']],
+    ['id number with type prefix', 'V-33333333', ['PP-ZQ003']],
+  ])('q matches %s', async (_label, q, expected) => {
+    const res = await searchReservations(inMain({ q, sort: { by: 'code', dir: 'asc' } }));
+    expect(codes(res.rows)).toEqual(expected);
+  });
+
+  it('treats PostgREST syntax in q as plain text (no injection, no error)', async () => {
+    const res = await searchReservations(inMain({ q: 'x,status.eq.failed)' }));
+    expect(res).toEqual({ rows: [], total: 0 });
+  });
+
+  it('sorts by name as last_name, first_name', async () => {
+    const res = await searchReservations(inMain({ sort: { by: 'name', dir: 'asc' } }));
+    expect(res.rows.map((r) => r.last_name)).toEqual(['Alvarez', 'Garcia', 'Gómez', 'Pérez', 'Zamora']);
+  });
+
+  it('sorts by guests as adults + children', async () => {
+    const res = await searchReservations(inMain({ sort: { by: 'guests', dir: 'desc' } }));
+    expect(codes(res.rows).slice(0, 3)).toEqual(['PP-ZQ004', 'PP-ZQ002', 'PP-ZQ005']);
+  });
+
+  it('sorts by total_usd', async () => {
+    const res = await searchReservations(inMain({ sort: { by: 'total_usd', dir: 'asc' } }));
+    expect(codes(res.rows)).toEqual(['PP-ZQ003', 'PP-ZQ001', 'PP-ZQ005', 'PP-ZQ002', 'PP-ZQ004']);
+  });
+
+  it('paginates with an exact total', async () => {
+    const q = (page: number): ReservationQuery => ({
+      dateFrom: PAGE_DATE, dateTo: PAGE_DATE, sort: { by: 'total_usd', dir: 'asc' }, page, pageSize: 10,
+    });
+    const p1 = await searchReservations(q(1));
+    expect(p1.total).toBe(12);
+    expect(p1.rows).toHaveLength(10);
+    expect(p1.rows[0].code).toBe('PP-ZP001');
+    const p2 = await searchReservations(q(2));
+    expect(codes(p2.rows)).toEqual(['PP-ZP011', 'PP-ZP012']);
+    expect(p2.total).toBe(12);
+  });
+
+  it('returns no rows but the real total for a page past the end', async () => {
+    const res = await searchReservations({
+      dateFrom: PAGE_DATE, dateTo: PAGE_DATE, page: 3, pageSize: 10,
+    });
+    expect(res).toEqual({ rows: [], total: 12 });
   });
 });
