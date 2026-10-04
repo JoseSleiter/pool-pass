@@ -1,7 +1,7 @@
 // src/components/admin/admin-shell.test.tsx
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('next/navigation', () => ({
@@ -81,5 +81,19 @@ describe('AdminShell', () => {
     window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, '1');
     renderShell('owner');
     expect(screen.getByRole('button', { name: 'Expandir menú' })).toBeInTheDocument();
+  });
+  it('opens the global reservation search with Ctrl+K', async () => {
+    renderShell('operator');
+    fireEvent.keyDown(document.body, { key: 'k', ctrlKey: true });
+    expect(await screen.findByRole('dialog', { name: 'Buscar reservas' })).toBeInTheDocument();
+  });
+
+  it('offers visible 44px search buttons (sidebar and mobile bar)', async () => {
+    renderShell('owner');
+    const buttons = screen.getAllByRole('button', { name: 'Buscar reservas' });
+    expect(buttons).toHaveLength(2);
+    for (const b of buttons) expect(b).toHaveClass('min-h-11');
+    await userEvent.click(buttons[0]);
+    expect(await screen.findByRole('dialog', { name: 'Buscar reservas' })).toBeInTheDocument();
   });
 });
