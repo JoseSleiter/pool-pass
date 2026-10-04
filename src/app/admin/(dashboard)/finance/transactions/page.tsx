@@ -17,7 +17,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   const { rows, total, totals } = await adminListTransactions(query);
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-6xl space-y-5 p-4">
       <header>
         <h1 className="text-xl font-extrabold">Transacciones C2P</h1>
         <p className="text-sm text-muted-foreground">

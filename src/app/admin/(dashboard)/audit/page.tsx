@@ -18,7 +18,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   const heading = <h1 className="text-xl font-extrabold">Auditoría</h1>;
   if (me.role !== 'owner') {
     return (
-      <div className="space-y-5">
+      <div className="mx-auto max-w-6xl space-y-5 p-4">
         <header>{heading}</header>
         <p className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900">
           Solo el dueño puede ver la auditoría.
@@ -31,7 +31,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   const { rows, total } = await adminSearchAudit(query);
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-6xl space-y-5 p-4">
       <header>
         {heading}
         <p className="text-sm text-muted-foreground">
