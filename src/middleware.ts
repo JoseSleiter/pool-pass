@@ -1,9 +1,18 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isAdminEmail } from '@/lib/auth/admin';
+import { ADMIN_SCOPE, ADMIN_SCOPE_HEADER } from '@/lib/admin-scope';
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  // Every matched request is /admin/*: tell the root layout so it renders
+  // lang="es" regardless of pp_lang. Rebuilt after setAll so refreshed auth
+  // cookies (written into request.headers) are forwarded too.
+  const next = () => {
+    const headers = new Headers(request.headers);
+    headers.set(ADMIN_SCOPE_HEADER, ADMIN_SCOPE);
+    return NextResponse.next({ request: { headers } });
+  };
+  let response = next();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,7 +22,7 @@ export async function middleware(request: NextRequest) {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = next();
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           );
