@@ -33,15 +33,15 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Finanzas',
     items: [
-      { href: '/admin/finance/transactions', label: 'Transacciones C2P', icon: ReceiptText, ready: false },
-      { href: '/admin/finance/bcv', label: 'Tasas BCV', icon: ChartLine, ready: false },
+      { href: '/admin/finance/transactions', label: 'Transacciones C2P', icon: ReceiptText, ready: true },
+      { href: '/admin/finance/bcv', label: 'Tasas BCV', icon: ChartLine, ready: true },
     ],
   },
   {
     label: 'Gestión',
     items: [
       { href: '/admin/settings', label: 'Configuración', icon: Settings, ownerOnly: true, ready: true },
-      { href: '/admin/audit', label: 'Auditoría', icon: ScrollText, ownerOnly: true, ready: false },
+      { href: '/admin/audit', label: 'Auditoría', icon: ScrollText, ownerOnly: true, ready: true },
     ],
   },
 ];

@@ -45,14 +45,22 @@ describe('AdminShell', () => {
   it('hides owner-only items from operators', () => {
     renderShell('operator');
     expect(screen.queryByRole('link', { name: 'Configuración' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Auditoría' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Transacciones C2P' })).toHaveAttribute('href', '/admin/finance/transactions');
+    expect(screen.getByRole('link', { name: 'Tasas BCV' })).toHaveAttribute('href', '/admin/finance/bcv');
     expect(screen.getByText('Operador')).toBeInTheDocument();
+  });
+
+  it('shows owners the finance and audit pages', () => {
+    renderShell('owner');
+    expect(screen.getByRole('link', { name: 'Transacciones C2P' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Tasas BCV' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Auditoría' })).toHaveAttribute('href', '/admin/audit');
   });
 
   it('does not render routes that are not ready yet', () => {
     renderShell('owner');
-    for (const name of ['Reservas', 'Transacciones C2P', 'Tasas BCV', 'Auditoría']) {
-      expect(screen.queryByRole('link', { name })).toBeNull();
-    }
+    expect(screen.queryByRole('link', { name: 'Reservas' })).toBeNull();
   });
 
   it('has a 44px mobile menu button', () => {
