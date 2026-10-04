@@ -20,6 +20,7 @@ vi.mock('@/lib/db/reservations', () => ({
   listOverrides: vi.fn(),
   upsertOverride: vi.fn(),
   deleteOverride: vi.fn(),
+  searchReservations: vi.fn(),
 }));
 vi.mock('@/lib/db/admin-roles', () => ({
   getAdminRole: vi.fn(async () => null),
@@ -42,10 +43,11 @@ import {
   adminListReservations, adminGetDaySummary, adminCheckIn, adminResendVoucher,
   adminGetSettings, adminUpdateSettings, adminUpsertOverride, adminDeleteOverride,
   adminListRoles, adminUpsertRole, adminListAudit, adminListBcvHistory,
+  adminSearchReservations,
 } from './actions';
 import {
   listReservationsByDate, getReservation, checkInReservation, getSettings,
-  updateSettings, listOverrides, upsertOverride, deleteOverride,
+  updateSettings, listOverrides, upsertOverride, deleteOverride, searchReservations,
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
 import { getAdminRole, listAdminRoles, upsertAdminRole } from '@/lib/db/admin-roles';
@@ -469,5 +471,44 @@ describe('paginated read actions', () => {
     mockUser = null;
     await expect(adminListBcvHistory({ page: 1, pageSize: 10 })).rejects.toThrow('Unauthorized');
     expect(listBcvHistory).not.toHaveBeenCalled();
+  });
+});
+
+describe('adminSearchReservations', () => {
+  const valid = { q: '  Ana ', statuses: ['confirmed'], page: '2', pageSize: 25 };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(searchReservations).mockResolvedValue({ rows: [], total: 0 });
+  });
+
+  it('rejects with Unauthorized when there is no session and never queries', async () => {
+    mockUser = null;
+    await expect(adminSearchReservations(valid)).rejects.toThrow('Unauthorized');
+    expect(searchReservations).not.toHaveBeenCalled();
+  });
+
+  it('rejects a logged-in non-admin and never queries', async () => {
+    mockUser = { id: 'user-9', email: 'intruder@evil.com' };
+    await expect(adminSearchReservations(valid)).rejects.toThrow('Unauthorized');
+    expect(searchReservations).not.toHaveBeenCalled();
+  });
+
+  it('throws Invalid query on bad input without hitting the data layer', async () => {
+    mockUser = { id: 'admin-1', email: ADMIN_EMAIL };
+    await expect(
+      adminSearchReservations({ page: 1, pageSize: 10, sort: { by: 'email', dir: 'asc' } })
+    ).rejects.toThrow('Invalid query');
+    expect(searchReservations).not.toHaveBeenCalled();
+  });
+
+  it('forwards the normalized query and returns the data layer result', async () => {
+    mockUser = { id: 'admin-1', email: ADMIN_EMAIL };
+    const result = { rows: [], total: 42 };
+    vi.mocked(searchReservations).mockResolvedValue(result);
+    await expect(adminSearchReservations(valid)).resolves.toBe(result);
+    expect(searchReservations).toHaveBeenCalledWith({
+      q: 'Ana', statuses: ['confirmed'], page: 2, pageSize: 25,
+    });
   });
 });

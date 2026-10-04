@@ -8,11 +8,13 @@ import { listAdminRoles, upsertAdminRole, type AdminRole } from '@/lib/db/admin-
 import {
   listReservationsByDate, getReservation, checkInReservation,
   getSettings, updateSettings, listOverrides, upsertOverride, deleteOverride,
+  searchReservations,
   type ReservationRow,
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
 import { logAudit, listAudit, type AuditRow } from '@/lib/audit';
 import { listBcvHistory, type BcvHistoryRow } from '@/lib/bcv-history';
+import { parseReservationQuery } from '@/lib/reservation-search';
 
 export interface DaySummary {
   capacity: number;
@@ -217,4 +219,13 @@ export async function adminListBcvHistory(raw: unknown): Promise<{ rows: BcvHist
   const parsed = pageSchema.safeParse(raw);
   if (!parsed.success) throw new Error('Invalid page');
   return listBcvHistory(parsed.data);
+}
+
+export async function adminSearchReservations(
+  raw: unknown,
+): Promise<{ rows: ReservationRow[]; total: number }> {
+  await requireAdmin();
+  const query = parseReservationQuery(raw);
+  if (!query) throw new Error('Invalid query');
+  return searchReservations(query);
 }
