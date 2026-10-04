@@ -7,11 +7,11 @@ import { recordBcvRate } from '@/lib/bcv-history';
 import { payC2p, mercantilConfigFromEnv } from '@/lib/mercantil/client';
 import {
   reserveSlots, confirmReservation, failReservation,
-  getSettings, readRateCache, writeRateCache, monthAvailability,
+  getSettings, readRateCache, writeRateCache, monthAvailability, sumPartySize,
 } from '@/lib/db/reservations';
 import { checkRateLimit } from '@/lib/db/rate-limit';
 import { sendVoucherEmail } from '@/lib/email/send';
-import { todayCaracas } from '@/lib/dates';
+import { todayCaracas, upcomingWeekend } from '@/lib/dates';
 
 // Public booking action: at most 8 attempts per IP per minute. A pending
 // reservation holds a slot for 10 min, so unthrottled spam could exhaust
@@ -29,6 +29,10 @@ function rateDeps(): RateDeps {
     now: Date.now,
   };
 }
+
+// Social proof on the landing ("N personas reservadas este fin de semana") is shown
+// only with real numbers, and hidden below this many people.
+const WEEKEND_SOCIAL_PROOF_MIN = 10;
 
 export async function submitBookingAndPay(raw: unknown): Promise<BookingResult> {
   const h = await headers();
@@ -76,4 +80,23 @@ export async function getTodayRemaining(): Promise<number> {
   if (avail[today] !== undefined) return avail[today];
   const s = await getSettings();
   return s.daily_capacity;
+}
+
+/**
+ * People (adults + children) with a confirmed or checked-in booking for the
+ * upcoming Saturday + Sunday in Caracas time (the current weekend on Sat/Sun).
+ * null when below WEEKEND_SOCIAL_PROOF_MIN or on any error — the landing must
+ * never break or show a made-up number because of this.
+ */
+export async function getWeekendBookedPeople(): Promise<number | null> {
+  try {
+    const { saturday, sunday } = upcomingWeekend(todayCaracas());
+    const people = await sumPartySize({
+      dateFrom: saturday, dateTo: sunday, statuses: ['confirmed', 'checked_in'],
+    });
+    return people >= WEEKEND_SOCIAL_PROOF_MIN ? people : null;
+  } catch (e) {
+    console.error('getWeekendBookedPeople failed', e);
+    return null;
+  }
 }
