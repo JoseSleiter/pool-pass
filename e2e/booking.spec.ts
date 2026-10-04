@@ -32,8 +32,8 @@ async function goToDate(page: Page, date: string) {
 
 async function openBooking(page: Page) {
   await page.goto('/');
-  // The hero "Continuar" opens /reservar directly in the payment view (pay=1).
-  await page.getByRole('link', { name: /continuar/i }).click();
+  // The hero CTA opens /reservar directly in the payment view (pay=1).
+  await page.getByRole('link', { name: /reservar mi pase ahora/i }).click();
   await expect(page).toHaveURL(/\/reservar/);
 }
 

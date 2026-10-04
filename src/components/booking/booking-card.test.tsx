@@ -52,6 +52,22 @@ describe('BookingCard', () => {
     vi.mocked(getCurrentRate).mockClear();
   });
 
+  it('labels untouched calendar days with the daily capacity ("Quedan N")', async () => {
+    const { container } = renderWithI18n(
+      <BookingCard
+        prices={prices}
+        initialAvailability={{ '2099-03-12': 7 }}
+        remaining={40}
+        dailyCapacity={100}
+        initialDate="2099-03-10"
+      />
+    );
+    await user.click(screen.getByRole('button', { name: /fecha de visita/i }));
+    const day = (d: string) => container.querySelector(`td[data-day="${d}"]:not([data-outside])`);
+    expect(day('2099-03-12')).toHaveTextContent('Quedan 7');
+    expect(day('2099-03-14')).toHaveTextContent('Quedan 100');
+  });
+
   it('shows the default party total in the summary (2 adultos · 1 niño = $35)', () => {
     renderCard();
     expect(screen.getByTestId('total-usd')).toHaveTextContent('$35 USD');

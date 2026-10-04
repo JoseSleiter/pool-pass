@@ -1,7 +1,7 @@
 import { SiteHeader } from '@/components/landing/site-header';
 import { SiteFooter } from '@/components/landing/site-footer';
 import { BookingCard } from '@/components/booking/booking-card';
-import { getPublicPrices, getAvailability, getTodayRemaining } from '@/app/actions/booking';
+import { getPublicPrices, getAvailability, getTodayCapacity } from '@/app/actions/booking';
 import { parseBookingParams } from '@/lib/booking/search-params';
 import { getDictionary, getLocale } from '@/lib/i18n';
 
@@ -16,10 +16,10 @@ export default async function ReservarPage({
   const { date, adults, children } = parseBookingParams(sp);
   // Anchor availability to the carried date's month so the calendar matches the selection.
   const month = date.slice(0, 7);
-  const [prices, availability, remaining, locale] = await Promise.all([
+  const [prices, availability, today, locale] = await Promise.all([
     getPublicPrices(),
     getAvailability(month),
-    getTodayRemaining(),
+    getTodayCapacity(),
     getLocale(),
   ]);
   const t = getDictionary(locale);
@@ -30,7 +30,8 @@ export default async function ReservarPage({
         <BookingCard
           prices={prices}
           initialAvailability={availability}
-          remaining={remaining}
+          remaining={today.remaining}
+          dailyCapacity={today.dailyCapacity}
           startAtPay={sp.pay === '1'}
           initialDate={date}
           initialAdults={adults}

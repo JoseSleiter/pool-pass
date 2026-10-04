@@ -14,7 +14,7 @@ test('ES | EN switch translates the landing and /reservar and persists in pp_lan
   expect(cookies.find((c) => c.name === 'pp_lang')?.value).toBe('en');
 
   // The choice survives navigation: /reservar renders in English server-side.
-  await page.getByRole('link', { name: /continue/i }).click();
+  await page.getByRole('link', { name: /book my pass now/i }).click();
   await expect(page).toHaveURL(/\/reservar/);
   await expect(page.getByRole('heading', { name: /details to confirm your booking/i })).toBeVisible();
 

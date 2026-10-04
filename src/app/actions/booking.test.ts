@@ -21,12 +21,15 @@ vi.mock('@/lib/bcv-history', () => ({
 vi.mock('@/lib/db/reservations', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/db/reservations')>()),
   sumPartySize: vi.fn(),
+  monthAvailability: vi.fn(),
+  getSettings: vi.fn(),
+  listOverrides: vi.fn(),
 }));
 
-import { submitBookingAndPay, getCurrentRate, getWeekendBookedPeople } from './booking';
+import { submitBookingAndPay, getCurrentRate, getWeekendBookedPeople, getTodayCapacity } from './booking';
 import { getBcvRate } from '@/lib/bcv';
 import { recordBcvRate } from '@/lib/bcv-history';
-import { sumPartySize } from '@/lib/db/reservations';
+import { sumPartySize, monthAvailability, getSettings, listOverrides } from '@/lib/db/reservations';
 import { checkRateLimit } from '@/lib/db/rate-limit';
 import { processBooking } from '@/lib/booking/process';
 
@@ -105,5 +108,57 @@ describe('getWeekendBookedPeople', () => {
     await expect(getWeekendBookedPeople()).resolves.toBeNull();
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
+  });
+});
+
+describe('getTodayCapacity', () => {
+  const SETTINGS = {
+    daily_capacity: 100, adult_price_usd: 15, child_price_usd: 5,
+    last_bcv_rate: null, last_bcv_rate_at: null,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-07T15:00:00Z')); // Wednesday 11:00 Caracas
+    vi.mocked(getSettings).mockResolvedValue(SETTINGS);
+    vi.mocked(listOverrides).mockResolvedValue([]);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('an untouched day has the whole default capacity free', async () => {
+    vi.mocked(monthAvailability).mockResolvedValue({ '2026-10-08': 3 });
+    await expect(getTodayCapacity()).resolves.toEqual({ remaining: 100, capacity: 100, dailyCapacity: 100 });
+    expect(monthAvailability).toHaveBeenCalledWith('2026-10');
+  });
+
+  it('reports what bookings left against the default capacity', async () => {
+    vi.mocked(monthAvailability).mockResolvedValue({ '2026-10-07': 15 });
+    await expect(getTodayCapacity()).resolves.toEqual({ remaining: 15, capacity: 100, dailyCapacity: 100 });
+  });
+
+  it("uses today's override as today's capacity", async () => {
+    vi.mocked(listOverrides).mockResolvedValue([
+      { date: '2026-10-06', capacity: 10, reason: null },
+      { date: '2026-10-07', capacity: 40, reason: 'Evento' },
+    ]);
+    vi.mocked(monthAvailability).mockResolvedValue({ '2026-10-07': 6 });
+    await expect(getTodayCapacity()).resolves.toEqual({ remaining: 6, capacity: 40, dailyCapacity: 100 });
+  });
+
+  it('a closed day (override 0) has 0 remaining and 0 capacity', async () => {
+    vi.mocked(listOverrides).mockResolvedValue([{ date: '2026-10-07', capacity: 0, reason: 'Cerrado' }]);
+    vi.mocked(monthAvailability).mockResolvedValue({ '2026-10-07': 0 });
+    await expect(getTodayCapacity()).resolves.toEqual({ remaining: 0, capacity: 0, dailyCapacity: 100 });
+  });
+
+  it('anchors "today" to Caracas: 22:00 on Oct 31 Caracas is still October', async () => {
+    vi.setSystemTime(new Date('2026-11-01T02:00:00Z')); // Nov 1 in UTC, Oct 31 in Caracas
+    vi.mocked(listOverrides).mockResolvedValue([{ date: '2026-10-31', capacity: 50, reason: null }]);
+    vi.mocked(monthAvailability).mockResolvedValue({});
+    await expect(getTodayCapacity()).resolves.toEqual({ remaining: 50, capacity: 50, dailyCapacity: 100 });
+    expect(monthAvailability).toHaveBeenCalledWith('2026-10');
   });
 });

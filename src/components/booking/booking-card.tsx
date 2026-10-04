@@ -34,6 +34,8 @@ export function BookingCard(props: {
   prices: { adult: number; child: number };
   initialAvailability: Record<string, number>;
   remaining: number;
+  /** settings.daily_capacity: lets the calendar label days with no bookings yet ("Quedan N"). */
+  dailyCapacity?: number;
   startAtPay?: boolean;
   initialDate?: string;
   initialAdults?: number;
@@ -170,6 +172,7 @@ export function BookingCard(props: {
             <DatePickerPanel
               date={date}
               availability={availability}
+              defaultCapacity={props.dailyCapacity}
               onSelect={(d) => setDate(d)}
               onMonthChange={(m) => getAvailability(m).then(setAvailability)}
             />
