@@ -10,8 +10,17 @@ vi.mock('@/lib/booking/process', () => ({
     reservation: { id: 'uuid-1', code: 'PP-AAAAA', totalUsd: 35, totalVes: 1277.5, bcvRate: 36.5 },
   })),
 }));
+vi.mock('@/lib/bcv', () => ({
+  getBcvRate: vi.fn(async () => 36.5),
+  fetchBcvRate: vi.fn(),
+}));
+vi.mock('@/lib/bcv-history', () => ({
+  recordBcvRate: vi.fn(async () => {}),
+}));
 
-import { submitBookingAndPay } from './booking';
+import { submitBookingAndPay, getCurrentRate } from './booking';
+import { getBcvRate } from '@/lib/bcv';
+import { recordBcvRate } from '@/lib/bcv-history';
 import { checkRateLimit } from '@/lib/db/rate-limit';
 import { processBooking } from '@/lib/booking/process';
 
@@ -32,5 +41,17 @@ describe('submitBookingAndPay rate limiting', () => {
     const res = await submitBookingAndPay(payload);
     expect(res).toMatchObject({ ok: true });
     expect(processBooking).toHaveBeenCalledOnce();
+  });
+});
+
+describe('BCV rate history wiring', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('getCurrentRate passes a recordHistory dep that stores the rate as source auto', async () => {
+    expect(await getCurrentRate()).toBe(36.5);
+    const deps = vi.mocked(getBcvRate).mock.calls[0][0];
+    expect(deps.recordHistory).toBeTypeOf('function');
+    await deps.recordHistory!(40.1, 1_900_000_000_000);
+    expect(recordBcvRate).toHaveBeenCalledWith(40.1, 1_900_000_000_000, 'auto');
   });
 });

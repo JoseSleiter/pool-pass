@@ -125,11 +125,11 @@ describe('settings & capacity override helpers', () => {
   it('upsertOverride creates then updates a row visible via listOverrides', async () => {
     await upsertOverride(OV_DATE, 5);
     let overrides = await listOverrides();
-    expect(overrides).toContainEqual({ date: OV_DATE, capacity: 5 });
+    expect(overrides).toContainEqual({ date: OV_DATE, capacity: 5, reason: null });
 
     await upsertOverride(OV_DATE, 0);
     overrides = await listOverrides();
-    expect(overrides).toContainEqual({ date: OV_DATE, capacity: 0 });
+    expect(overrides).toContainEqual({ date: OV_DATE, capacity: 0, reason: null });
   });
 
   it('deleteOverride removes the row', async () => {
