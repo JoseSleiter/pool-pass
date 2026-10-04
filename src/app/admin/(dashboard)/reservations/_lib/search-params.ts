@@ -1,6 +1,6 @@
 import type { ReservationQuery, ReservationRow } from '@/lib/db/reservations';
 import { DEFAULT_SORT, parseReservationQuery } from '@/lib/reservation-search';
-import { STATUS_ORDER } from '@/lib/reservation-status';
+import { STATUS_NAME_ES, STATUS_ORDER } from '@/lib/reservation-status';
 
 /**
  * /admin/reservations keeps its whole state in the URL:
@@ -153,4 +153,67 @@ export function ariaSort(state: ReservationsState, by: SortKey): 'ascending' | '
 /** Last valid page (server-safe twin of pagination.tsx's totalPages, which is a client module). */
 export function lastPage(total: number, pageSize: number): number {
   return Math.max(1, Math.ceil(total / pageSize));
+}
+
+export type StatusChipKey = 'all' | 'confirmed' | 'checked_in' | 'pending' | 'canceled';
+
+/** Quick status filters (roadmap §2). "Canceladas" = failed + expired. */
+export const STATUS_CHIPS: readonly { key: StatusChipKey; label: string; statuses: Status[] }[] = [
+  { key: 'all', label: 'Todas', statuses: [] },
+  { key: 'confirmed', label: 'Confirmadas', statuses: ['confirmed'] },
+  { key: 'checked_in', label: 'Ingresaron', statuses: ['checked_in'] },
+  { key: 'pending', label: 'Pendientes', statuses: ['pending_payment'] },
+  { key: 'canceled', label: 'Canceladas', statuses: ['failed', 'expired'] },
+];
+
+/** Chip matching the status filter exactly; null for custom combinations from a shared URL. */
+export function activeStatusChip(state: ReservationsState): StatusChipKey | null {
+  const current = state.statuses.join(',');
+  return STATUS_CHIPS.find((c) => c.statuses.join(',') === current)?.key ?? null;
+}
+
+export interface ActiveFilter {
+  id: string;
+  label: string;
+  /** Same list without this filter. */
+  href: string;
+}
+
+const GUEST_LABEL: Record<GuestType, string> = { individual: 'Individual', family: 'Familia' };
+
+/** "15 ene 2030" in Caracas. */
+function chipDate(date: string): string {
+  return new Intl.DateTimeFormat('es-VE', {
+    timeZone: 'America/Caracas', day: 'numeric', month: 'short', year: 'numeric',
+  }).format(new Date(`${date}T12:00:00-04:00`)).replace(/\./g, '');
+}
+
+/** One dismissible chip per active filter ("Estado: Confirmada ✕"). */
+export function activeFilters(state: ReservationsState): ActiveFilter[] {
+  const out: ActiveFilter[] = [];
+  if (state.q) {
+    out.push({ id: 'q', label: `Búsqueda: “${state.q}”`, href: reservationsHref(state, { q: '' }) });
+  }
+  for (const s of state.statuses) {
+    out.push({
+      id: `status:${s}`,
+      label: `Estado: ${STATUS_NAME_ES[s]}`,
+      href: reservationsHref(state, { statuses: state.statuses.filter((x) => x !== s) }),
+    });
+  }
+  if (state.from) {
+    out.push({ id: 'from', label: `Desde: ${chipDate(state.from)}`, href: reservationsHref(state, { from: '' }) });
+  }
+  if (state.to) {
+    out.push({ id: 'to', label: `Hasta: ${chipDate(state.to)}`, href: reservationsHref(state, { to: '' }) });
+  }
+  if (state.guest) {
+    out.push({ id: 'guest', label: `Grupo: ${GUEST_LABEL[state.guest]}`, href: reservationsHref(state, { guest: '' }) });
+  }
+  return out;
+}
+
+/** "Limpiar todo": drops every filter, keeps sort and page size. */
+export function clearFiltersHref(state: ReservationsState): string {
+  return reservationsHref(state, { q: '', statuses: [], from: '', to: '', guest: '' });
 }

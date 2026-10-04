@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
-  DEFAULT_STATE, ariaSort, lastPage, parseReservationsParams, parseReservationsState,
-  reservationsHref, sortHref, stateToParams, type ReservationsState,
+  DEFAULT_STATE, STATUS_CHIPS, activeFilters, activeStatusChip, ariaSort, clearFiltersHref, lastPage,
+  parseReservationsParams, parseReservationsState, reservationsHref, sortHref, stateToParams,
+  type ReservationsState,
 } from './search-params';
 
 const S = (over: Partial<ReservationsState> = {}): ReservationsState => ({ ...DEFAULT_STATE, ...over });
@@ -126,6 +127,46 @@ describe('lastPage', () => {
     expect(lastPage(10, 10)).toBe(1);
     expect(lastPage(11, 10)).toBe(2);
     expect(lastPage(142, 25)).toBe(6);
+  });
+});
+describe('status chips (roadmap §2)', () => {
+  it('are Todas · Confirmadas · Ingresaron · Pendientes · Canceladas', () => {
+    expect(STATUS_CHIPS.map((c) => c.label)).toEqual(['Todas', 'Confirmadas', 'Ingresaron', 'Pendientes', 'Canceladas']);
+    expect(STATUS_CHIPS.find((c) => c.key === 'canceled')?.statuses).toEqual(['failed', 'expired']);
+  });
+
+  it('marks the chip matching the status filter exactly', () => {
+    expect(activeStatusChip(DEFAULT_STATE)).toBe('all');
+    expect(activeStatusChip(S({ statuses: ['pending_payment'] }))).toBe('pending');
+    expect(activeStatusChip(S({ statuses: ['failed', 'expired'] }))).toBe('canceled');
+    expect(activeStatusChip(S({ statuses: ['confirmed', 'checked_in'] }))).toBeNull();
+  });
+});
+
+describe('activeFilters / clearFiltersHref', () => {
+  it('is empty without filters', () => {
+    expect(activeFilters(S({ sort: 'code', dir: 'asc', pageSize: 25 }))).toEqual([]);
+  });
+
+  it('lists one dismissible chip per filter, each removing only itself', () => {
+    const state = S({ q: 'ana', statuses: ['confirmed', 'checked_in'], from: '2030-01-15', guest: 'family', sort: 'code', dir: 'asc' });
+    expect(activeFilters(state)).toEqual([
+      { id: 'q', label: 'Búsqueda: “ana”', href: '/admin/reservations?status=confirmed%2Cchecked_in&from=2030-01-15&guest=family&sort=code&dir=asc' },
+      { id: 'status:confirmed', label: 'Estado: Confirmada', href: '/admin/reservations?q=ana&status=checked_in&from=2030-01-15&guest=family&sort=code&dir=asc' },
+      { id: 'status:checked_in', label: 'Estado: Ingresó', href: '/admin/reservations?q=ana&status=confirmed&from=2030-01-15&guest=family&sort=code&dir=asc' },
+      { id: 'from', label: 'Desde: 15 ene 2030', href: '/admin/reservations?q=ana&status=confirmed%2Cchecked_in&guest=family&sort=code&dir=asc' },
+      { id: 'guest', label: 'Grupo: Familia', href: '/admin/reservations?q=ana&status=confirmed%2Cchecked_in&from=2030-01-15&sort=code&dir=asc' },
+    ]);
+  });
+
+  it('labels the end date and the individual guest type', () => {
+    expect(activeFilters(S({ to: '2030-02-01', guest: 'individual' })).map((f) => f.label))
+      .toEqual(['Hasta: 1 feb 2030', 'Grupo: Individual']);
+  });
+
+  it('"Limpiar todo" keeps sort and page size', () => {
+    const state = S({ q: 'ana', statuses: ['confirmed'], from: '2030-01-15', guest: 'family', sort: 'code', dir: 'asc', pageSize: 25, page: 3 });
+    expect(clearFiltersHref(state)).toBe('/admin/reservations?sort=code&dir=asc&pageSize=25');
   });
 });
 });
