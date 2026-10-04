@@ -1,6 +1,7 @@
 // src/components/admin/admin-shell.tsx
 'use client';
 
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
@@ -8,6 +9,7 @@ import type { AdminRole } from '@/lib/db/admin-roles';
 import { cn } from '@/lib/utils';
 import { AdminDrawer } from './admin-drawer';
 import { AdminNavLinks } from './admin-nav-links';
+import { CommandSearch, CommandSearchButton } from './command-search';
 import { visibleNavGroups } from './nav-config';
 import { ProfilePill } from './profile-pill';
 import { Topbar } from './topbar';
@@ -20,10 +22,10 @@ export interface AdminUser {
   role: AdminRole;
 }
 
-// ⌘K global search is deferred to PR 10 (needs /admin/reservations).
 export function AdminShell(props: { user: AdminUser; status: ShellStatus; children: React.ReactNode }) {
   const pathname = usePathname();
   const [collapsed, toggleCollapsed] = useSidebarCollapsed();
+  const [searchOpen, setSearchOpen] = useState(false);
   const groups = visibleNavGroups(props.user.role);
 
   return (
@@ -55,6 +57,7 @@ export function AdminShell(props: { user: AdminUser; status: ShellStatus; childr
               : <PanelLeftClose aria-hidden className="size-5" />}
           </button>
         </div>
+        <CommandSearchButton onClick={() => setSearchOpen(true)} compact={collapsed} />
         <div id="admin-sidebar-nav" className="min-h-0 flex-1 overflow-y-auto">
           <AdminNavLinks groups={groups} pathname={pathname} collapsed={collapsed} />
         </div>
@@ -64,13 +67,19 @@ export function AdminShell(props: { user: AdminUser; status: ShellStatus; childr
       {/* Mobile top bar */}
       <div className="flex items-center justify-between bg-navy px-3 py-2 md:hidden">
         <Logo variant="chip" className="h-7 w-auto" sizes="96px" />
-        <AdminDrawer groups={groups} pathname={pathname} email={props.user.email} role={props.user.role} />
+        <div className="flex items-center gap-1">
+          <CommandSearchButton onClick={() => setSearchOpen(true)} compact />
+          <AdminDrawer groups={groups} pathname={pathname} email={props.user.email} role={props.user.role} />
+        </div>
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar status={props.status} />
         <div className="min-w-0 flex-1">{props.children}</div>
       </div>
+
+      {/* Global ⌘K / Ctrl+K reservation search (roadmap §2). */}
+      <CommandSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

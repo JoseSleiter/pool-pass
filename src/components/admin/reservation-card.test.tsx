@@ -34,4 +34,27 @@ describe('ReservationCard', () => {
     expect(screen.getByText(/Ingreso registrado/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Check-in$/i })).toBeNull();
   });
+  it('offers "Reenviar voucher" for confirmed and calls onResend', async () => {
+    const onResend = vi.fn();
+    render(<ReservationCard reservation={row()} onCheckin={vi.fn()} onResend={onResend} onDetail={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: /Reenviar voucher/i }));
+    expect(onResend).toHaveBeenCalledWith(row().id);
+  });
+  it('shows "Verificar" for pending payments, which opens the detail', async () => {
+    const onDetail = vi.fn();
+    render(<ReservationCard reservation={row({ status: 'pending_payment' })} onCheckin={vi.fn()} onResend={vi.fn()} onDetail={onDetail} />);
+    expect(screen.queryByRole('button', { name: /Reenviar voucher/i })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Verificar' }));
+    expect(onDetail).toHaveBeenCalledWith(row().id);
+  });
+  it('uses the shared status pill', () => {
+    render(<ReservationCard reservation={row()} onCheckin={vi.fn()} onResend={vi.fn()} onDetail={vi.fn()} />);
+    expect(screen.getByText('Confirmada')).toHaveClass('bg-emerald-700');
+  });
+  it('shows the visit date with only its first letter capitalized', () => {
+    render(<ReservationCard reservation={row()} onCheckin={vi.fn()} onResend={vi.fn()} onDetail={vi.fn()} />);
+    const line = screen.getByText(/15 ene/);
+    expect(line).toHaveClass('first-letter:uppercase');
+    expect(line).not.toHaveClass('capitalize');
+  });
 });

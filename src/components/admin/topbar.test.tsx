@@ -35,10 +35,10 @@ describe('BcvBadge', () => {
 });
 
 describe('PendingBell', () => {
-  it('links to the admin home with the pending count', () => {
+  it('links to the pending reservations with the pending count', () => {
     render(<PendingBell count={3} />);
     const bell = screen.getByRole('link', { name: '3 pagos pendientes por verificar' });
-    expect(bell).toHaveAttribute('href', '/admin');
+    expect(bell).toHaveAttribute('href', '/admin/reservations?status=pending_payment');
     expect(bell).toHaveClass('size-11');
     expect(screen.getByText('3')).toBeInTheDocument();
   });

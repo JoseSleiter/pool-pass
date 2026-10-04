@@ -27,7 +27,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Operaciones',
     items: [
       { href: ADMIN_HOME, label: 'Hoy', icon: House, ready: true },
-      { href: '/admin/reservations', label: 'Reservas', icon: CalendarDays, ready: false },
+      { href: '/admin/reservations', label: 'Reservas', icon: CalendarDays, ready: true },
     ],
   },
   {

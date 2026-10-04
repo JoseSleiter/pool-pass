@@ -10,8 +10,8 @@ import { breadcrumbFor } from './nav-config';
 import type { ShellStatus } from './topbar-data';
 import { ADMIN_ICON_ACTION } from './ui-constants';
 
-/** Pending payments are reviewed from "Hoy" until PR 10 ships /admin/reservations. */
-export const PENDING_HREF = '/admin';
+/** The bell opens the reservations list filtered to payments awaiting verification (roadmap §2). */
+export const PENDING_HREF = '/admin/reservations?status=pending_payment';
 
 export function Breadcrumb(props: { pathname: string }) {
   const crumb = breadcrumbFor(props.pathname);
