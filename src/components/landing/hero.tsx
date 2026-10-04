@@ -1,5 +1,5 @@
-import { landingContent } from '@/lib/landing-content';
 import { HeroBookingCard } from '@/components/landing/hero-booking-card';
+import type { Dictionary } from '@/lib/i18n/types';
 
 /** Stylized pool card icon (ladder + water), matching the reference line art. */
 function PoolMark() {
@@ -17,10 +17,12 @@ function PoolMark() {
 }
 
 export function Hero(props: {
+  t: Dictionary;
   remaining: number;
   prices: { adult: number; child: number };
   initialAvailability: Record<string, number>;
 }) {
+  const { t } = props;
   const open = props.remaining > 0;
   return (
     <section
@@ -32,23 +34,21 @@ export function Hero(props: {
         <div className="grid items-start gap-10 md:grid-cols-[1.15fr_0.85fr]">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-teal-soft">
-              {landingContent.tagline}
+              {t.content.tagline}
             </p>
             <h1 className="mt-5 font-heading text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-              Reserva tu pase.
+              {t.hero.titleLine1}
               <br />
-              Disfruta el agua.
+              {t.hero.titleLine2}
             </h1>
             <p className="mt-5 max-w-md text-base leading-relaxed text-white/80">
-              Elige tu fecha, registra a tus acompañantes y recibe tu pase
-              digital en minutos. Pago seguro con Pago Móvil y acceso fácil
-              desde tu celular.
+              {t.hero.body}
             </p>
             <p className="mt-6 text-sm font-semibold text-white/90">
-              Adultos desde&nbsp;
+              {t.hero.adultsFrom}&nbsp;
               <span className="text-white">${props.prices.adult.toFixed(0)}</span>
               <span className="mx-3 text-white/40">·</span>
-              Niños&nbsp;
+              {t.hero.kids}&nbsp;
               <span className="text-white">${props.prices.child.toFixed(0)}</span>
             </p>
           </div>
@@ -57,7 +57,7 @@ export function Hero(props: {
             <div className="flex flex-col items-center gap-3 text-teal-soft">
               <PoolMark />
               <span className="text-xs font-bold uppercase tracking-[0.2em]">
-                {open ? 'Piscina abierta' : 'Agotado hoy'}
+                {open ? t.hero.poolOpen : t.hero.soldOutToday}
               </span>
             </div>
           </div>

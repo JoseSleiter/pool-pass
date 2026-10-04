@@ -1,24 +1,35 @@
+import type { Dictionary } from '@/lib/i18n/types';
+
+type StepId = keyof Dictionary['content']['steps'];
+type AmenityId = keyof Dictionary['content']['amenities'];
+
+/**
+ * Non-translatable landing data. Every visible sentence (tagline, subtitle,
+ * step and amenity texts, opening hours) lives in the i18n dictionaries; steps
+ * and amenities carry an `id` that points into `t.content.steps` /
+ * `t.content.amenities`.
+ */
+const steps: readonly { icon: string; id: StepId }[] = [
+  { icon: '📅', id: 'chooseDate' },
+  { icon: '📲', id: 'payC2p' },
+  { icon: '✉️', id: 'getQr' },
+  { icon: '🏊', id: 'walkIn' },
+];
+
+const amenities: readonly { icon: string; id: AmenityId }[] = [
+  { icon: '🏊', id: 'pool' },
+  { icon: '🛡️', id: 'lifeguards' },
+  { icon: '🍔', id: 'food' },
+  { icon: '🅿️', id: 'parking' },
+  { icon: '🪑', id: 'shade' },
+  { icon: '🚿', id: 'showers' },
+];
+
 export const landingContent = {
   clubName: 'Complejo Turístico Villa Victoria',
-  tagline: 'Tu día de piscina, a un clic',
-  subtitle: 'Reserva online, paga con Pago Móvil y entra con tu QR. Sin colas, sin efectivo.',
-  steps: [
-    { icon: '📅', text: 'Elige fecha' },
-    { icon: '📲', text: 'Paga C2P' },
-    { icon: '✉️', text: 'Recibe tu QR' },
-    { icon: '🏊', text: 'Entra directo' },
-  ],
-  amenities: [
-    { icon: '🏊', text: 'Piscina para adultos y niños' },
-    { icon: '🛡️', text: 'Salvavidas certificados' },
-    { icon: '🍔', text: 'Comida y bebidas' },
-    { icon: '🅿️', text: 'Estacionamiento gratis' },
-    { icon: '🪑', text: 'Toldos y tumbonas' },
-    { icon: '🚿', text: 'Duchas y vestuarios' },
-  ],
+  steps,
+  amenities,
   address: 'Tumeremo, Bolívar, Venezuela',
-  // TODO: horario real — este es inventado y sale en el footer de cada página.
-  hours: 'Mar–Dom · 9:00 am – 6:00 pm',
   whatsapp: '+58 424-9196984',
   instagram: 'finca_villa_victoria',
 } as const;
