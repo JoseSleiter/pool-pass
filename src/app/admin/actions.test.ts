@@ -41,13 +41,14 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 import {
   adminListReservations, adminGetDaySummary, adminCheckIn, adminResendVoucher,
   adminGetSettings, adminUpdateSettings, adminUpsertOverride, adminDeleteOverride,
+  adminListRoles, adminUpsertRole,
 } from './actions';
 import {
   listReservationsByDate, getReservation, checkInReservation, getSettings,
   updateSettings, listOverrides, upsertOverride, deleteOverride,
 } from '@/lib/db/reservations';
 import { sendVoucherEmail } from '@/lib/email/send';
-import { getAdminRole } from '@/lib/db/admin-roles';
+import { getAdminRole, listAdminRoles, upsertAdminRole } from '@/lib/db/admin-roles';
 import { logAudit } from '@/lib/audit';
 
 // Default for every test: an allowlisted email with no admin_roles row = owner.
@@ -349,6 +350,75 @@ describe('admin write actions record an audit entry on success only', () => {
     vi.mocked(deleteOverride).mockRejectedValue(new Error('db down'));
     const res = await adminDeleteOverride('2030-02-01');
     expect(res.ok).toBe(false);
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+});
+
+describe('role management (owner only)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = { id: 'admin-1', email: ADMIN_EMAIL };
+    vi.mocked(listAdminRoles).mockResolvedValue([]);
+    vi.mocked(upsertAdminRole).mockResolvedValue(undefined);
+  });
+
+  it('rejects without a session', async () => {
+    mockUser = null;
+    await expect(adminListRoles()).rejects.toThrow('Unauthorized');
+    await expect(adminUpsertRole({ email: OPS_EMAIL, role: 'operator' })).rejects.toThrow('Unauthorized');
+    expect(upsertAdminRole).not.toHaveBeenCalled();
+  });
+
+  it('rejects an operator with Forbidden', async () => {
+    mockUser = { id: 'ops-1', email: OPS_EMAIL };
+    vi.mocked(getAdminRole).mockResolvedValue('operator');
+    await expect(adminListRoles()).rejects.toThrow('Forbidden');
+    await expect(adminUpsertRole({ email: ADMIN_EMAIL, role: 'operator' })).rejects.toThrow('Forbidden');
+    expect(upsertAdminRole).not.toHaveBeenCalled();
+  });
+
+  it('adminListRoles lists every allowlisted email with its effective role', async () => {
+    vi.mocked(listAdminRoles).mockResolvedValue([
+      { email: OPS_EMAIL, role: 'operator' },
+      { email: 'gone@club.com', role: 'owner' }, // row for an email no longer allowlisted
+    ]);
+    await expect(adminListRoles()).resolves.toEqual([
+      { email: ADMIN_EMAIL, role: 'owner', explicit: false },
+      { email: OPS_EMAIL, role: 'operator', explicit: true },
+    ]);
+  });
+
+  it('adminUpsertRole stores a normalized email and audits it', async () => {
+    await expect(adminUpsertRole({ email: '  OPS@Club.com ', role: 'operator' })).resolves.toEqual({ ok: true });
+    expect(upsertAdminRole).toHaveBeenCalledWith(OPS_EMAIL, 'operator');
+    expect(logAudit).toHaveBeenCalledWith({
+      actor: ADMIN_EMAIL, action: 'role.upsert', target: OPS_EMAIL, details: { role: 'operator' },
+    });
+  });
+
+  it('adminUpsertRole rejects an unknown role', async () => {
+    const res = await adminUpsertRole({ email: OPS_EMAIL, role: 'superadmin' });
+    expect(res.ok).toBe(false);
+    expect(upsertAdminRole).not.toHaveBeenCalled();
+  });
+
+  it('adminUpsertRole rejects an email outside ADMIN_EMAILS', async () => {
+    const res = await adminUpsertRole({ email: 'stranger@club.com', role: 'operator' });
+    expect(res).toEqual({ ok: false, message: 'Ese correo no está en ADMIN_EMAILS.' });
+    expect(upsertAdminRole).not.toHaveBeenCalled();
+  });
+
+  it('adminUpsertRole forbids an owner from demoting themself', async () => {
+    const res = await adminUpsertRole({ email: ADMIN_EMAIL, role: 'operator' });
+    expect(res).toEqual({ ok: false, message: 'No puedes quitarte tu propio rol de owner.' });
+    expect(upsertAdminRole).not.toHaveBeenCalled();
+    expect(logAudit).not.toHaveBeenCalled();
+  });
+
+  it('adminUpsertRole reports a DB failure without auditing', async () => {
+    vi.mocked(upsertAdminRole).mockRejectedValue(new Error('db down'));
+    const res = await adminUpsertRole({ email: OPS_EMAIL, role: 'operator' });
+    expect(res).toEqual({ ok: false, message: 'No se pudo guardar.' });
     expect(logAudit).not.toHaveBeenCalled();
   });
 });

@@ -3,6 +3,8 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth/require-admin';
+import { adminEmails, isAdminEmail } from '@/lib/auth/admin';
+import { listAdminRoles, upsertAdminRole, type AdminRole } from '@/lib/db/admin-roles';
 import {
   listReservationsByDate, getReservation, checkInReservation,
   getSettings, updateSettings, listOverrides, upsertOverride, deleteOverride,
@@ -140,6 +142,57 @@ export async function adminDeleteOverride(date: string): Promise<{ ok: boolean; 
     return { ok: false, message: 'No se pudo eliminar.' };
   }
   await logAudit({ actor: me.email, action: 'override.delete', target: date });
+  revalidatePath('/admin/settings');
+  return { ok: true };
+}
+
+// ── Roles (owner only) ──────────────────────────────────────────────────────
+
+export interface AdminAccessEntry {
+  email: string;
+  role: AdminRole;
+  /** true when admin_roles has a row; false = default owner. */
+  explicit: boolean;
+}
+
+const emailSchema = z.string().trim().toLowerCase().pipe(z.email());
+const roleSchema = z.object({
+  email: emailSchema,
+  role: z.enum(['owner', 'operator']),
+});
+
+/** Every allowlisted email with its effective role (no row = owner). */
+export async function adminListRoles(): Promise<AdminAccessEntry[]> {
+  await requireAdmin({ role: 'owner' });
+  const rows = await listAdminRoles();
+  const byEmail = new Map(rows.map((r) => [r.email, r.role]));
+  return adminEmails().map((email) => ({
+    email,
+    role: byEmail.get(email) ?? 'owner',
+    explicit: byEmail.has(email),
+  }));
+}
+
+/**
+ * The only way to change a role. There is deliberately no delete: with
+ * "no row = owner", removing someone's row would silently promote them.
+ * To revoke access, remove the email from ADMIN_EMAILS.
+ */
+export async function adminUpsertRole(raw: unknown): Promise<{ ok: boolean; message?: string }> {
+  const me = await requireAdmin({ role: 'owner' });
+  const parsed = roleSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, message: 'Valores inválidos.' };
+  const { email, role } = parsed.data;
+  if (!isAdminEmail(email)) return { ok: false, message: 'Ese correo no está en ADMIN_EMAILS.' };
+  if (email === me.email && role !== 'owner') {
+    return { ok: false, message: 'No puedes quitarte tu propio rol de owner.' };
+  }
+  try {
+    await upsertAdminRole(email, role);
+  } catch {
+    return { ok: false, message: 'No se pudo guardar.' };
+  }
+  await logAudit({ actor: me.email, action: 'role.upsert', target: email, details: { role } });
   revalidatePath('/admin/settings');
   return { ok: true };
 }
