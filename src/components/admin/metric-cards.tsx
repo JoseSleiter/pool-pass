@@ -1,7 +1,7 @@
 'use client';
 
 import { useId } from 'react';
-import { CalendarX2, DoorOpen, Users, type LucideIcon } from 'lucide-react';
+import { CalendarX2, DoorOpen, Users, Wallet, type LucideIcon } from 'lucide-react';
 import type { DaySummary } from '@/app/admin/actions';
 import {
   hourLabel, hourlySeries, occupancyLevel, occupancyPercent, type DayMetrics, type OccupancyLevel,
@@ -9,6 +9,8 @@ import {
 import { cn } from '@/lib/utils';
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const usd = (n: number) => `$${n.toFixed(2)}`;
+const ves = (n: number) => `Bs. ${n.toFixed(2)}`;
 
 /** KPI card shell: a labelled region (h2) so screen readers and tests can find each card by name. */
 function MetricCard(props: {
@@ -189,6 +191,31 @@ export function CheckinsCard(props: { metrics: DayMetrics }) {
         <p className="mt-auto pt-3 text-xs text-muted-foreground">Aún no hay ingresos registrados.</p>
       ) : (
         <HourlyBars byHour={checkinsByHour} />
+      )}
+    </MetricCard>
+  );
+}
+
+export function RevenueCard(props: { metrics: DayMetrics }) {
+  const { collected, pending } = props.metrics;
+  return (
+    <MetricCard title="Ingresos" icon={Wallet}>
+      <p data-testid="revenue-usd" className="text-2xl font-extrabold text-navy">{usd(collected.usd)}</p>
+      <p className="text-sm text-muted-foreground">{ves(collected.ves)}</p>
+      <dl className="mt-auto space-y-1 pt-3 text-xs">
+        <div className="flex justify-between gap-2">
+          <dt className="text-muted-foreground">{`Cobrado · ${plural(collected.count, 'reserva', 'reservas')}`}</dt>
+          <dd className="font-semibold text-navy">{usd(collected.usd)}</dd>
+        </div>
+        <div className="flex justify-between gap-2">
+          <dt className="text-muted-foreground">{`Por verificar · ${plural(pending.count, 'pago', 'pagos')}`}</dt>
+          <dd className="font-semibold text-amber-800">{usd(pending.usd)}</dd>
+        </div>
+      </dl>
+      {pending.count > 0 && (
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          El monto en Bs. de los pagos por verificar se fija al confirmarlos.
+        </p>
       )}
     </MetricCard>
   );

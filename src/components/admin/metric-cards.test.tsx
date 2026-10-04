@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
-import { CheckinsCard, MetricGrid, OccupancyCard } from './metric-cards';
+import { CheckinsCard, MetricGrid, OccupancyCard, RevenueCard } from './metric-cards';
 import type { DaySummary } from '@/app/admin/actions';
 import type { DayMetrics } from '@/lib/day-metrics';
 
@@ -129,6 +129,32 @@ describe('CheckinsCard', () => {
     render(<CheckinsCard metrics={m({ checkinsByHour: [{ hour: 14, people: 1 }] })} />);
     expect(screen.getByText('14:00: 1 persona')).toBeInTheDocument();
     expect(screen.getByText('Hora pico: 14:00 (1 persona)')).toBeInTheDocument();
+  });
+});
+
+describe('RevenueCard', () => {
+  it('shows collected USD as primary and Bs. as secondary', () => {
+    render(<RevenueCard metrics={m()} />);
+    const card = screen.getByRole('region', { name: 'Ingresos' });
+    expect(within(card).getByTestId('revenue-usd')).toHaveTextContent('$65.00');
+    expect(within(card).getByText('Bs. 2390.05')).toBeInTheDocument();
+  });
+
+  it('splits the money by payment status', () => {
+    render(<RevenueCard metrics={m({ pending: { usd: 30, count: 1 } })} />);
+    const card = screen.getByRole('region', { name: 'Ingresos' });
+    expect(within(card).getByText('Cobrado · 2 reservas').parentElement).toHaveTextContent('$65.00');
+    expect(within(card).getByText('Por verificar · 1 pago').parentElement).toHaveTextContent('$30.00');
+    expect(within(card).getByText('El monto en Bs. de los pagos por verificar se fija al confirmarlos.')).toBeInTheDocument();
+  });
+
+  it('shows $0.00 pending and no Bs. note when nothing awaits verification', () => {
+    render(<RevenueCard metrics={m({ collected: { usd: 10, ves: 1234.5, count: 1 } })} />);
+    const card = screen.getByRole('region', { name: 'Ingresos' });
+    expect(within(card).getByText('Bs. 1234.50')).toBeInTheDocument();
+    expect(within(card).getByText('Cobrado · 1 reserva').parentElement).toHaveTextContent('$10.00');
+    expect(within(card).getByText('Por verificar · 0 pagos').parentElement).toHaveTextContent('$0.00');
+    expect(within(card).queryByText(/se fija al confirmarlos/)).toBeNull();
   });
 });
 
