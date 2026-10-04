@@ -18,27 +18,20 @@ import {
   submitBookingAndPay,
 } from '@/app/actions/booking';
 import { totalUsd, usdToVes } from '@/lib/money';
-import { partyLabel } from '@/lib/party';
-import { shortDateEs, visitLabelEs } from '@/lib/dates';
+import { shortDateLabel, visitLabel } from '@/lib/dates';
 import { paymentSchema } from '@/lib/schemas';
 import { VENEZUELAN_BANKS } from '@/lib/banks';
 import { whatsappUrl } from '@/lib/landing-content';
 import { Logo } from '@/components/brand/logo';
+import { useLocale, useT } from '@/lib/i18n/provider';
+import { formatParty, interpolate } from '@/lib/i18n/format';
+import { validationKey, type ValidationKey } from '@/lib/i18n/validation';
+import { submitErrorMessage, type SubmitFailure } from '@/lib/i18n/booking-errors';
 import type { BookingResult } from '@/lib/booking/process';
 
 type Confirmed = Extract<BookingResult, { ok: true }>['reservation'];
 type View = 'summary' | 'pay' | 'pending' | 'done';
 type Editing = null | 'date' | 'people';
-
-function capitalize(s: string): string {
-  // Capitalize the first letter of each space-delimited token. A \b\p{L} regex
-  // would misfire on accented weekdays (JS word boundaries are ASCII-based),
-  // producing "MiÉ"/"SÁb" instead of "Mié"/"Sáb".
-  return s
-    .split(' ')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-}
 
 export function BookingCard(props: {
   prices: { adult: number; child: number };
@@ -49,6 +42,8 @@ export function BookingCard(props: {
   initialAdults?: number;
   initialChildren?: number;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const [view, setView] = useState<View>(props.startAtPay ? 'pay' : 'summary');
   const [editing, setEditing] = useState<Editing>(null);
   const [availability, setAvailability] = useState(props.initialAvailability);
@@ -65,15 +60,21 @@ export function BookingCard(props: {
   const [otp, setOtp] = useState('');
   const [website, setWebsite] = useState(''); // honeypot: real users leave this empty
   const [rate, setRate] = useState<number | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [pendingMessage, setPendingMessage] = useState('');
+  // Errors are kept as dictionary keys / raw failures, not strings: a language
+  // switch (router.refresh keeps client state) then re-renders them translated.
+  const [errors, setErrors] = useState<Partial<Record<string, ValidationKey>>>({});
+  const [submitFailure, setSubmitFailure] = useState<SubmitFailure | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [reservation, setReservation] = useState<Confirmed | null>(null);
 
   const usd = totalUsd(adults, children, props.prices);
   const attendeeCount = adults + children;
   const remaining = props.remaining;
+
+  function fieldError(field: string): string | undefined {
+    const key = errors[field];
+    return key ? t.validation[key] : undefined;
+  }
 
   // Fetch the BCV rate whenever we're in the payment view and don't have it yet.
   useEffect(() => {
@@ -92,20 +93,20 @@ export function BookingCard(props: {
 
   async function confirmAndPay() {
     if (adults + children === 0) {
-      setSubmitError('Agrega al menos un asistente para continuar.');
+      setSubmitFailure({ ok: false, error: 'no_attendees' });
       setEditing('people');
       return;
     }
     const payload = { date, adults, children, firstName, lastName, email, idType, idNumber, phone, bankCode, otp };
     const parsed = paymentSchema.safeParse(payload);
     if (!parsed.success) {
-      const errs: Record<string, string> = {};
-      for (const issue of parsed.error.issues) errs[String(issue.path[0])] = issue.message;
+      const errs: Partial<Record<string, ValidationKey>> = {};
+      for (const issue of parsed.error.issues) errs[String(issue.path[0])] = validationKey(issue);
       setErrors(errs);
       return;
     }
     setErrors({});
-    setSubmitError(null);
+    setSubmitFailure(null);
     setSubmitting(true);
     // Include the honeypot in the raw payload; the schema strips it but the
     // server drops the request if a bot filled it.
@@ -118,20 +119,21 @@ export function BookingCard(props: {
     }
     switch (result.error) {
       case 'capacity':
-        setSubmitError(`Ya no hay cupo suficiente para esa fecha. Quedan ${result.remaining} puestos. Elige otra fecha.`);
+        setSubmitFailure(result);
         setEditing('date');
         getAvailability(date.slice(0, 7)).then(setAvailability);
         break;
       case 'payment_declined':
-        setSubmitError(`Pago rechazado: ${result.message}. Genera una nueva clave C2P e intenta de nuevo.`);
+        setSubmitFailure(result);
         setOtp('');
         break;
       case 'payment_pending':
-        setPendingMessage(result.message);
+        // The server always sends the same sentence; the dictionary holds it
+        // in both languages (pending.message).
         setView('pending');
         break;
       default:
-        setSubmitError(result.message);
+        setSubmitFailure(result);
     }
   }
 
@@ -144,37 +146,37 @@ export function BookingCard(props: {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="font-heading text-2xl font-semibold">
-            {view === 'done' ? 'Tu pase está listo' : 'Reserva tu pase'}
+            {view === 'done' ? t.booking.titleDone : t.booking.title}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {view === 'done'
-              ? 'Guarda este comprobante para el acceso'
-              : 'Completa estos datos para ver tu total'}
+            {view === 'done' ? t.booking.subtitleDone : t.booking.subtitle}
           </p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1.5 text-xs font-semibold text-secondary-foreground">
           <ShieldCheck className="h-3.5 w-3.5" />
-          Pago seguro
+          {t.booking.securePayment}
         </span>
       </div>
 
       {view !== 'pending' && (
         <p className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-secondary-foreground">
           <span className={`h-2 w-2 rounded-full ${remaining > 0 ? 'bg-teal' : 'bg-destructive'}`} />
-          {remaining > 0 ? `${remaining} cupos disponibles hoy` : 'Sin cupos hoy'}
+          {remaining > 0
+            ? interpolate(t.booking.slotsToday, { count: remaining })
+            : t.booking.noSlotsToday}
         </p>
       )}
 
-      {submitError && view !== 'done' && view !== 'pending' && (
+      {submitFailure && view !== 'done' && view !== 'pending' && (
         <p role="alert" className="mt-4 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
-          {submitError}
+          {submitErrorMessage(submitFailure, t)}
         </p>
       )}
 
       {/* ---- DATE EDITOR ---- */}
       {editing === 'date' && (view === 'summary' || view === 'pay') && (
         <div className="mt-5 rounded-2xl bg-muted p-5">
-          <h2 className="font-heading text-xl font-semibold">¿Cuándo vienes?</h2>
+          <h2 className="font-heading text-xl font-semibold">{t.booking.whenTitle}</h2>
           <div className="mt-4">
             <DatePickerPanel
               date={date}
@@ -184,13 +186,13 @@ export function BookingCard(props: {
             />
           </div>
           <div className="mt-4 flex items-center justify-between">
-            <p className="text-xs text-secondary-foreground">Solo mostramos días con cupo disponible</p>
+            <p className="text-xs text-secondary-foreground">{t.booking.onlyAvailableDays}</p>
             <button
               type="button"
               onClick={() => setEditing(null)}
               className="cursor-pointer rounded-full bg-navy px-5 py-2 text-sm font-semibold text-white"
             >
-              Listo
+              {t.booking.done}
             </button>
           </div>
         </div>
@@ -199,19 +201,31 @@ export function BookingCard(props: {
       {/* ---- PEOPLE EDITOR ---- */}
       {editing === 'people' && (view === 'summary' || view === 'pay') && (
         <div className="mt-5 rounded-2xl bg-muted p-5">
-          <h2 className="font-heading text-xl font-semibold">¿Quiénes van?</h2>
+          <h2 className="font-heading text-xl font-semibold">{t.booking.whoTitle}</h2>
           <div className="mt-4 space-y-3">
-            <CountRow label="Adultos" hint={`$${props.prices.adult.toFixed(0)} por persona`} value={adults} onChange={setAdults} testId="adults-count" />
-            <CountRow label="Niños" hint={`$${props.prices.child.toFixed(0)} por persona`} value={children} onChange={setChildren} testId="children-count" />
+            <CountRow
+              label={t.booking.adults}
+              hint={interpolate(t.booking.perPerson, { price: `$${props.prices.adult.toFixed(0)}` })}
+              value={adults}
+              onChange={setAdults}
+              testId="adults-count"
+            />
+            <CountRow
+              label={t.booking.children}
+              hint={interpolate(t.booking.perPerson, { price: `$${props.prices.child.toFixed(0)}` })}
+              value={children}
+              onChange={setChildren}
+              testId="children-count"
+            />
           </div>
           <div className="mt-4 flex items-center justify-between">
-            <p className="text-xs text-secondary-foreground">El total se actualiza automáticamente</p>
+            <p className="text-xs text-secondary-foreground">{t.booking.totalUpdates}</p>
             <button
               type="button"
               onClick={() => setEditing(null)}
               className="cursor-pointer rounded-full bg-navy px-5 py-2 text-sm font-semibold text-white"
             >
-              Listo
+              {t.booking.done}
             </button>
           </div>
         </div>
@@ -227,8 +241,8 @@ export function BookingCard(props: {
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Fecha de visita</p>
-                <p className="mt-1 font-heading text-lg font-semibold">{visitLabelEs(date)}</p>
+                <p className="text-xs font-medium text-muted-foreground">{t.booking.visitDate}</p>
+                <p className="mt-1 font-heading text-lg font-semibold">{visitLabel(date, locale)}</p>
               </div>
               <CalendarCheck className="h-5 w-5 text-teal" />
             </div>
@@ -240,17 +254,24 @@ export function BookingCard(props: {
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Personas</p>
-                <p className="mt-1 font-heading text-lg font-semibold">{partyLabel(adults, children) || 'Elige asistentes'}</p>
+                <p className="text-xs font-medium text-muted-foreground">{t.booking.people}</p>
+                <p className="mt-1 font-heading text-lg font-semibold">
+                  {formatParty(t.party, adults, children) || t.booking.chooseAttendees}
+                </p>
               </div>
               <Users className="h-5 w-5 text-teal" />
             </div>
           </button>
           <div className="rounded-2xl bg-secondary p-4">
-            <p className="text-xs font-medium text-secondary-foreground/70">Total estimado</p>
+            <p className="text-xs font-medium text-secondary-foreground/70">{t.booking.estimatedTotal}</p>
             <p data-testid="total-usd" className="mt-1 font-heading text-2xl font-semibold text-secondary-foreground">${usd.toFixed(0)} USD</p>
             {view === 'pay' && rate !== null && (
-              <p className="mt-0.5 text-xs text-secondary-foreground/80">Bs. {usdToVes(usd, rate).toFixed(2)} · tasa {rate.toFixed(2)}</p>
+              <p className="mt-0.5 text-xs text-secondary-foreground/80">
+                {interpolate(t.booking.rateLine, {
+                  ves: usdToVes(usd, rate).toFixed(2),
+                  rate: rate.toFixed(2),
+                })}
+              </p>
             )}
           </div>
         </div>
@@ -264,7 +285,7 @@ export function BookingCard(props: {
             onClick={goToPay}
             className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-primary px-7 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.02]"
           >
-            Continuar
+            {t.booking.continue}
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
@@ -274,13 +295,13 @@ export function BookingCard(props: {
       {view === 'pay' && editing === null && (
         <>
           <div className="mt-5 rounded-2xl bg-muted p-5">
-            <h2 className="font-heading text-xl font-semibold">Datos para confirmar tu reserva</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Usaremos estos datos para validar tu identidad y procesar el Pago Móvil.</p>
+            <h2 className="font-heading text-xl font-semibold">{t.pay.title}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t.pay.intro}</p>
 
             {/* Honeypot: hidden from real users, catches naive bots. Do not remove. */}
             <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
               <label>
-                No llenar este campo
+                {t.pay.honeypot}
                 <input
                   type="text"
                   tabIndex={-1}
@@ -293,27 +314,27 @@ export function BookingCard(props: {
 
             <div className="mt-4 space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Nombre" value={firstName} onChange={setFirstName} error={errors.firstName} autoComplete="given-name" />
-                <Field label="Apellido" value={lastName} onChange={setLastName} error={errors.lastName} autoComplete="family-name" />
+                <Field label={t.pay.firstName} value={firstName} onChange={setFirstName} error={fieldError('firstName')} autoComplete="given-name" />
+                <Field label={t.pay.lastName} value={lastName} onChange={setLastName} error={fieldError('lastName')} autoComplete="family-name" />
               </div>
-              <Field label="Correo electrónico" value={email} onChange={setEmail} error={errors.email} type="email" autoComplete="email" />
+              <Field label={t.pay.email} value={email} onChange={setEmail} error={fieldError('email')} type="email" autoComplete="email" />
 
               <div className="rounded-xl border border-border bg-card px-4 py-2.5">
-                <span className="block text-xs font-medium text-muted-foreground">Cédula / RIF</span>
+                <span className="block text-xs font-medium text-muted-foreground">{t.pay.idLabel}</span>
                 <div className="flex items-center gap-2">
                   <select
-                    aria-label="Tipo de documento"
+                    aria-label={t.pay.idType}
                     value={idType}
                     onChange={(e) => setIdType(e.target.value as typeof idType)}
                     className="-ml-1 bg-transparent py-1 font-semibold text-navy outline-none"
                   >
-                    {(['V', 'E', 'P', 'J'] as const).map((t) => (
-                      <option key={t} value={t}>{t}</option>
+                    {(['V', 'E', 'P', 'J'] as const).map((type) => (
+                      <option key={type} value={type}>{type}</option>
                     ))}
                   </select>
                   <span className="text-muted-foreground">·</span>
                   <input
-                    aria-label="Número de documento"
+                    aria-label={t.pay.idNumber}
                     inputMode="numeric"
                     value={idNumber}
                     onChange={(e) => setIdNumber(e.target.value)}
@@ -321,28 +342,28 @@ export function BookingCard(props: {
                     className="w-full bg-transparent py-1 font-semibold text-navy outline-none placeholder:font-normal placeholder:text-muted-foreground"
                   />
                 </div>
-                {errors.idNumber && <p className="text-xs text-destructive">{errors.idNumber}</p>}
+                {fieldError('idNumber') && <p className="text-xs text-destructive">{fieldError('idNumber')}</p>}
               </div>
 
-              <Field label="Teléfono" value={phone} onChange={setPhone} error={errors.phone} placeholder="04141234567" inputMode="tel" autoComplete="tel" />
+              <Field label={t.pay.phone} value={phone} onChange={setPhone} error={fieldError('phone')} placeholder="04141234567" inputMode="tel" autoComplete="tel" />
 
               <div className="rounded-xl border border-border bg-card px-4 py-2.5">
-                <span className="block text-xs font-medium text-muted-foreground">Banco</span>
+                <span className="block text-xs font-medium text-muted-foreground">{t.pay.bank}</span>
                 <select
-                  aria-label="Banco"
+                  aria-label={t.pay.bank}
                   value={bankCode}
                   onChange={(e) => setBankCode(e.target.value)}
                   className="w-full bg-transparent py-1 font-semibold text-navy outline-none"
                 >
-                  <option value="">Selecciona tu banco</option>
+                  <option value="">{t.pay.bankPlaceholder}</option>
                   {VENEZUELAN_BANKS.map((b) => (
                     <option key={b.code} value={b.code}>{b.code} — {b.name}</option>
                   ))}
                 </select>
-                {errors.bankCode && <p className="text-xs text-destructive">{errors.bankCode}</p>}
+                {fieldError('bankCode') && <p className="text-xs text-destructive">{fieldError('bankCode')}</p>}
               </div>
 
-              <Field label="Clave de Pago (C2P)" value={otp} onChange={setOtp} error={errors.otp} type="password" inputMode="numeric" hint="Genera la clave C2P desde la app de tu banco antes de pagar." />
+              <Field label={t.pay.otp} value={otp} onChange={setOtp} error={fieldError('otp')} type="password" inputMode="numeric" hint={t.pay.otpHint} />
             </div>
           </div>
 
@@ -352,7 +373,7 @@ export function BookingCard(props: {
             disabled={submitting}
             className="mt-5 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-7 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30 transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? 'Procesando…' : 'Confirmar y pagar'}
+            {submitting ? t.pay.submitting : t.pay.submit}
             {!submitting && <Lock className="h-4 w-4" />}
           </button>
         </>
@@ -362,19 +383,19 @@ export function BookingCard(props: {
       {view === 'pending' && (
         <div className="mt-5 rounded-2xl bg-amber-50 p-6 text-center ring-1 ring-amber-200">
           <div className="text-4xl">⏳</div>
-          <h2 className="mt-2 font-heading text-xl font-semibold text-amber-900">Pago en verificación</h2>
-          {pendingMessage && <p className="mt-2 text-sm text-amber-800">{pendingMessage}</p>}
-          <p className="mt-2 text-sm text-amber-800">Te contactaremos con la confirmación. No intentes pagar de nuevo.</p>
+          <h2 className="mt-2 font-heading text-xl font-semibold text-amber-900">{t.pending.title}</h2>
+          <p className="mt-2 text-sm text-amber-800">{t.pending.message}</p>
+          <p className="mt-2 text-sm text-amber-800">{t.pending.doNotRetry}</p>
         </div>
       )}
 
       {/* ---- DONE ---- */}
       {view === 'done' && reservation && (
         <div className="mt-5 rounded-2xl bg-muted p-6 text-center">
-          <p className="font-heading text-xl font-semibold">¡Reserva confirmada! 🎉</p>
+          <p className="font-heading text-xl font-semibold">{t.done.confirmed}</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Tu pase digital fue enviado a <strong className="text-navy">{email}</strong>.
-            Muéstralo en la entrada junto con tu identificación.
+            {t.done.sentTo} <strong className="text-navy">{email}</strong>.{' '}
+            {t.done.showAtEntrance}
           </p>
           <div className="mx-auto mt-5 max-w-sm overflow-hidden rounded-2xl bg-card ring-1 ring-border">
             <div className="bg-navy p-4 text-white">
@@ -384,29 +405,29 @@ export function BookingCard(props: {
               <div className="mb-3">
                 <Logo variant="chip" className="h-9 w-auto" />
               </div>
-              <p className="text-xs uppercase tracking-[0.2em] text-teal-soft">Pase del día</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-teal-soft">{t.done.dayPass}</p>
               <p data-testid="reservation-code" className="font-heading text-3xl font-semibold tracking-wider">{reservation.code}</p>
             </div>
             <div className="p-5">
               <Image
                 unoptimized
                 src={`/api/qr/${reservation.id}`}
-                alt="Código QR de tu pase"
+                alt={t.done.qrAlt}
                 width={168}
                 height={168}
                 className="mx-auto rounded-lg"
               />
               <div className="mt-4 space-y-1 text-left text-sm">
-                <p><strong>Nombre:</strong> {firstName} {lastName}</p>
-                <p><strong>Documento:</strong> {idLabel}</p>
-                <p><strong>Fecha:</strong> {capitalize(shortDateEs(date).replace(/\./g, ''))}</p>
-                <p><strong>Asistentes:</strong> {partyLabel(adults, children)}</p>
-                <p><strong>Pagado:</strong> ${reservation.totalUsd.toFixed(2)} USD · Bs. {reservation.totalVes.toFixed(2)}</p>
+                <p><strong>{t.done.name}</strong> {firstName} {lastName}</p>
+                <p><strong>{t.done.document}</strong> {idLabel}</p>
+                <p><strong>{t.done.date}</strong> {shortDateLabel(date, locale)}</p>
+                <p><strong>{t.done.attendees}</strong> {formatParty(t.party, adults, children)}</p>
+                <p><strong>{t.done.paid}</strong> ${reservation.totalUsd.toFixed(2)} USD · Bs. {reservation.totalVes.toFixed(2)}</p>
               </div>
             </div>
           </div>
           <a href={whatsappUrl()} className="mt-5 inline-block rounded-full bg-secondary px-5 py-2.5 text-sm font-semibold text-secondary-foreground">
-            ¿Dudas? Escríbenos por WhatsApp
+            {t.done.whatsapp}
           </a>
         </div>
       )}

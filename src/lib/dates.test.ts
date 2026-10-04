@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shortDateEs, longDateEs, visitLabelEs, caracasHour, upcomingWeekend } from './dates';
+import { shortDateEs, longDateEs, visitLabelEs, caracasHour, upcomingWeekend, visitLabel, shortDateLabel } from './dates';
 
 describe('spanish date formatting (Caracas)', () => {
   it('shortDateEs renders weekday + day + month', () => {
@@ -40,5 +40,22 @@ describe('upcomingWeekend', () => {
     ['2026-12-31', '2027-01-02', '2027-01-03'], // year rollover
   ])('%s -> %s / %s', (today, saturday, sunday) => {
     expect(upcomingWeekend(today)).toEqual({ saturday, sunday });
+  });
+});
+
+describe('locale-aware labels (Caracas)', () => {
+  it('visitLabel keeps the exact Spanish output of visitLabelEs', () => {
+    expect(visitLabel('2026-07-17', 'es')).toBe('Vie, 17 Jul 2026');
+    expect(visitLabel('2026-01-03', 'es')).toBe('Sáb, 03 Ene 2026');
+  });
+  it('visitLabel renders US English', () => {
+    expect(visitLabel('2026-07-17', 'en')).toBe('Fri, Jul 17, 2026');
+  });
+  it('shortDateLabel reproduces the booking-card Spanish label', () => {
+    // Previously: capitalize(shortDateEs(date).replace(/\./g, ''))
+    expect(shortDateLabel('2030-01-15', 'es')).toBe('Mar, 15 Ene');
+  });
+  it('shortDateLabel renders US English', () => {
+    expect(shortDateLabel('2030-01-15', 'en')).toBe('Tue, Jan 15');
   });
 });

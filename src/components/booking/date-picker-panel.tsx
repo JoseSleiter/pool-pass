@@ -1,8 +1,9 @@
 'use client';
 
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
+import { useLocale } from '@/lib/i18n/provider';
+import { dateFnsLocale } from '@/lib/i18n/date-locale';
 
 /**
  * Shared calendar editor. Reports the picked day as a `YYYY-MM-DD` string and the
@@ -11,6 +12,8 @@ import { Calendar } from '@/components/ui/calendar';
  * Renders a bare, centered calendar with no surrounding chrome — callers wrap it
  * in the editor box (header + "Listo" button) so it stays homogeneous with the
  * people editor and users can close it without picking a new date.
+ *
+ * Month and weekday names follow the visitor's language (date-fns es / enUS).
  */
 export function DatePickerPanel(props: {
   date: string;
@@ -18,12 +21,13 @@ export function DatePickerPanel(props: {
   onSelect: (date: string) => void;
   onMonthChange: (month: string) => void;
 }) {
+  const locale = useLocale();
   const anchor = new Date(`${props.date}T12:00:00`);
   return (
     <div className="flex justify-center">
       <Calendar
         mode="single"
-        locale={es}
+        locale={dateFnsLocale(locale)}
         weekStartsOn={0}
         className="bg-transparent [--cell-size:2.5rem]"
         selected={anchor}
