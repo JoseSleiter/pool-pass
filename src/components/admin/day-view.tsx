@@ -30,7 +30,7 @@ export function AdminDayView(props: { date: string; rows: ReservationRow[]; summ
     <main className="mx-auto max-w-3xl space-y-4 p-4">
       <div>
         <h1 className="text-xl font-extrabold">Reservas del día</h1>
-        <p className="capitalize text-sm text-muted-foreground">{longDateEs(props.date)}</p>
+        <p className="text-sm text-muted-foreground first-letter:uppercase">{longDateEs(props.date)}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

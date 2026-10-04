@@ -89,7 +89,7 @@ export function Topbar(props: { status: ShellStatus }) {
     <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/90 px-4 py-2 backdrop-blur">
       <Breadcrumb pathname={pathname} />
       <div className="flex shrink-0 items-center gap-2">
-        <time dateTime={props.status.today} className="hidden text-sm capitalize text-muted-foreground lg:block">
+        <time dateTime={props.status.today} className="hidden text-sm text-muted-foreground first-letter:uppercase lg:block">
           {longDateEs(props.status.today)}
         </time>
         <BcvBadge bcv={props.status.bcv} />
