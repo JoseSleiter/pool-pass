@@ -1,126 +1,74 @@
+// src/components/admin/admin-shell.tsx
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { Bell } from 'lucide-react';
-import { browserClient } from '@/lib/db/browser-client';
+import { usePathname } from 'next/navigation';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Logo } from '@/components/brand/logo';
+import type { AdminRole } from '@/lib/db/admin-roles';
+import { cn } from '@/lib/utils';
+import { AdminDrawer } from './admin-drawer';
+import { AdminNavLinks } from './admin-nav-links';
+import { visibleNavGroups } from './nav-config';
+import { ProfilePill } from './profile-pill';
+import { Topbar } from './topbar';
+import type { ShellStatus } from './topbar-data';
+import { ADMIN_ICON_ACTION } from './ui-constants';
+import { useSidebarCollapsed } from './use-sidebar-collapsed';
 
-const NAV = [
-  { href: '/admin', label: 'Hoy', icon: '🏠' },
-  { href: '/admin/settings', label: 'Configuración', icon: '⚙️' },
-];
+export interface AdminUser {
+  email: string;
+  role: AdminRole;
+}
 
-function NavLinks(props: { onNavigate?: () => void }) {
+// ⌘K global search is deferred to PR 10 (needs /admin/reservations).
+export function AdminShell(props: { user: AdminUser; status: ShellStatus; children: React.ReactNode }) {
   const pathname = usePathname();
-  return (
-    <nav className="flex flex-col gap-1">
-      {NAV.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          onClick={props.onNavigate}
-          className={`flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            pathname === item.href ? 'bg-sky-700 text-white' : 'text-sky-200 hover:bg-sky-900'
-          }`}
-        >
-          <span aria-hidden>{item.icon}</span>
-          {item.label}
-        </Link>
-      ))}
-    </nav>
-  );
-}
+  const [collapsed, toggleCollapsed] = useSidebarCollapsed();
+  const groups = visibleNavGroups(props.user.role);
 
-function LogoutButton() {
-  const router = useRouter();
-  return (
-    <button
-      type="button"
-      className="cursor-pointer text-left text-xs text-sky-300 underline underline-offset-2"
-      onClick={async () => {
-        await browserClient().auth.signOut();
-        router.push('/admin/login');
-        router.refresh();
-      }}
-    >
-      Cerrar sesión
-    </button>
-  );
-}
-
-function AdminAccount() {
-  return (
-    <div className="mt-auto rounded-xl bg-sky-950/60 p-3">
-      <div className="flex items-center gap-2">
-        <span className="grid size-8 place-items-center rounded-full bg-sky-400 text-sm font-bold text-sky-950">A</span>
-        <span className="text-sm font-semibold text-white">Administrador</span>
-      </div>
-      <div className="mt-2">
-        <LogoutButton />
-      </div>
-    </div>
-  );
-}
-
-function Topbar(props: { context: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b bg-white/70 px-4 py-3">
-      <div className="min-w-0 truncate text-sm font-semibold text-slate-700">{props.context}</div>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          aria-label="Notificaciones"
-          className="grid size-9 place-items-center rounded-full border bg-white text-slate-600 hover:bg-sky-50"
-        >
-          <Bell className="size-4" />
-        </button>
-        <span className="flex items-center gap-2 rounded-full border bg-white px-2 py-1 text-sm">
-          <span className="grid size-6 place-items-center rounded-full bg-sky-400 text-xs font-bold text-sky-950">A</span>
-          Admin
-        </span>
-      </div>
-    </div>
-  );
-}
-
-export function AdminShell(props: { email: string; topbar?: React.ReactNode; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
   return (
     <div className="min-h-screen bg-slate-50 md:flex">
-      {/* Sidebar desktop */}
-      <aside className="hidden w-56 shrink-0 flex-col bg-[#0c4a6e] p-4 md:flex">
-        <p className="font-extrabold leading-tight text-white">🌊 Villa Victoria</p>
-        <p className="text-xs font-medium text-sky-300">Complejo Turístico</p>
-        <p className="mb-5 mt-2 text-[11px] uppercase tracking-wide text-sky-400/70">Panel de administración</p>
-        <NavLinks />
-        <AdminAccount />
-      </aside>
-
-      {/* Top bar móvil con hamburguesa */}
-      <div className="bg-[#0c4a6e] p-3 md:hidden">
-        <div className="flex items-center justify-between">
-          <p className="font-extrabold text-white">🌊 Villa Victoria</p>
+      {/* Desktop sidebar */}
+      <aside
+        aria-label="Menú lateral"
+        className={cn(
+          'sticky top-0 hidden h-screen shrink-0 flex-col gap-6 bg-navy p-3 transition-[width] duration-200 motion-reduce:transition-none md:flex',
+          collapsed ? 'w-20' : 'w-64',
+        )}
+      >
+        <div className={cn('flex items-center gap-2', collapsed ? 'flex-col' : 'justify-between')}>
+          <Logo variant="chip" className={collapsed ? 'h-6 w-auto' : 'h-9 w-auto'} sizes="112px" />
           <button
             type="button"
-            aria-label="Abrir menú"
-            aria-expanded={open}
-            className="min-h-11 min-w-11 cursor-pointer rounded-lg text-xl text-white"
-            onClick={() => setOpen((o) => !o)}
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? 'Expandir menú' : 'Contraer menú'}
+            aria-expanded={!collapsed}
+            aria-controls="admin-sidebar-nav"
+            className={cn(
+              ADMIN_ICON_ACTION,
+              'grid cursor-pointer place-items-center rounded-xl text-white/70 transition-colors motion-reduce:transition-none',
+              'hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-teal',
+            )}
           >
-            ☰
+            {collapsed
+              ? <PanelLeftOpen aria-hidden className="size-5" />
+              : <PanelLeftClose aria-hidden className="size-5" />}
           </button>
         </div>
-        {open && (
-          <div className="mt-2 space-y-2 border-t border-sky-900 pt-2">
-            <NavLinks onNavigate={() => setOpen(false)} />
-            <LogoutButton />
-          </div>
-        )}
+        <div id="admin-sidebar-nav" className="min-h-0 flex-1 overflow-y-auto">
+          <AdminNavLinks groups={groups} pathname={pathname} collapsed={collapsed} />
+        </div>
+        <ProfilePill email={props.user.email} role={props.user.role} collapsed={collapsed} />
+      </aside>
+
+      {/* Mobile top bar */}
+      <div className="flex items-center justify-between bg-navy px-3 py-2 md:hidden">
+        <Logo variant="chip" className="h-7 w-auto" sizes="96px" />
+        <AdminDrawer groups={groups} pathname={pathname} email={props.user.email} role={props.user.role} />
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar context={props.topbar ?? 'Panel administrativo'} />
+        <Topbar status={props.status} />
         <div className="min-w-0 flex-1">{props.children}</div>
       </div>
     </div>

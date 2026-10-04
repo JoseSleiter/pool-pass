@@ -25,3 +25,6 @@ export const ADMIN_INPUT = 'h-11 text-base';
  */
 export const DIALOG_FOOTER =
   'mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between';
+
+/** Sidebar / drawer navigation row: full-width 44px touch target. */
+export const ADMIN_NAV_ITEM = 'min-h-11 px-3';
