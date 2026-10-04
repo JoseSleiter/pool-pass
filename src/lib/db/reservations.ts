@@ -125,7 +125,7 @@ const RESERVATION_COLUMNS =
   'id, code, date, first_name, last_name, email, id_type, id_number, adults, children, ' +
   'total_usd, bcv_rate, total_ves, status, payment_ref, expires_at, checked_in_at, created_at';
 
-function filteredReservations(q: ReservationQuery, head: boolean) {
+export function filteredReservations(q: ReservationQuery, head: boolean) {
   let query = serviceClient()
     .from('reservations')
     .select(RESERVATION_COLUMNS, { count: 'exact', head });
