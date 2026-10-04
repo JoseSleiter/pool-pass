@@ -47,3 +47,6 @@ next-env.d.ts
 
 # brainstorming mockups
 .superpowers/
+
+# git worktrees (one per PR)
+.worktrees/
