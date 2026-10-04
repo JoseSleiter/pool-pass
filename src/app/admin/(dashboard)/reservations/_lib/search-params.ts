@@ -114,3 +114,43 @@ export function parseReservationsParams(sp: RawSearchParams): { state: Reservati
   if (query) return { state, query };
   return { state: DEFAULT_STATE, query: toReservationQuery(DEFAULT_STATE)! };
 }
+
+/** State → search params, omitting defaults so URLs stay short and shareable. */
+export function stateToParams(state: ReservationsState): Record<string, string> {
+  const p: Record<string, string> = {};
+  if (state.q) p.q = state.q;
+  if (state.statuses.length > 0) p.status = state.statuses.join(',');
+  if (state.from) p.from = state.from;
+  if (state.to) p.to = state.to;
+  if (state.guest) p.guest = state.guest;
+  if (state.sort !== DEFAULT_STATE.sort || state.dir !== DEFAULT_STATE.dir) {
+    p.sort = state.sort;
+    p.dir = state.dir;
+  }
+  if (state.page !== 1) p.page = String(state.page);
+  if (state.pageSize !== DEFAULT_STATE.pageSize) p.pageSize = String(state.pageSize);
+  return p;
+}
+
+/** Link to the list with `patch` applied. Any change other than `page` goes back to page 1. */
+export function reservationsHref(state: ReservationsState, patch: Partial<ReservationsState> = {}): string {
+  const next: ReservationsState = { ...state, ...patch, page: patch.page ?? 1 };
+  const qs = new URLSearchParams(stateToParams(next)).toString();
+  return qs ? `${RESERVATIONS_PATH}?${qs}` : RESERVATIONS_PATH;
+}
+
+/** Header link: flips the active column, otherwise sorts by `by` in its default direction. */
+export function sortHref(state: ReservationsState, by: SortKey): string {
+  const dir: SortDir = state.sort === by ? (state.dir === 'asc' ? 'desc' : 'asc') : defaultDir(by);
+  return reservationsHref(state, { sort: by, dir });
+}
+
+export function ariaSort(state: ReservationsState, by: SortKey): 'ascending' | 'descending' | 'none' {
+  if (state.sort !== by) return 'none';
+  return state.dir === 'asc' ? 'ascending' : 'descending';
+}
+
+/** Last valid page (server-safe twin of pagination.tsx's totalPages, which is a client module). */
+export function lastPage(total: number, pageSize: number): number {
+  return Math.max(1, Math.ceil(total / pageSize));
+}

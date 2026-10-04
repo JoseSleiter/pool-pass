@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  DEFAULT_STATE, parseReservationsParams, parseReservationsState, type ReservationsState,
+  DEFAULT_STATE, ariaSort, lastPage, parseReservationsParams, parseReservationsState,
+  reservationsHref, sortHref, stateToParams, type ReservationsState,
 } from './search-params';
 
 const S = (over: Partial<ReservationsState> = {}): ReservationsState => ({ ...DEFAULT_STATE, ...over });
@@ -77,4 +78,54 @@ describe('parseReservationsParams', () => {
     expect(state).toEqual(DEFAULT_STATE);
     expect(query).toEqual({ sort: { by: 'date', dir: 'desc' }, page: 1, pageSize: 10 });
   });
+describe('stateToParams / reservationsHref', () => {
+  it('is the bare path for the default state', () => {
+    expect(stateToParams(DEFAULT_STATE)).toEqual({});
+    expect(reservationsHref(DEFAULT_STATE)).toBe('/admin/reservations');
+  });
+
+  it('serializes non-default values and resets the page on any other change', () => {
+    expect(reservationsHref(S({ page: 4, pageSize: 25 }), { statuses: ['failed', 'expired'] }))
+      .toBe('/admin/reservations?status=failed%2Cexpired&pageSize=25');
+  });
+
+  it('keeps an explicit page', () => {
+    expect(reservationsHref(S(), { page: 3 })).toBe('/admin/reservations?page=3');
+  });
+
+  it('round-trips through the parser', () => {
+    const state = S({
+      q: 'josé', statuses: ['confirmed'], from: '2030-01-01', to: '2030-01-02', guest: 'family',
+      sort: 'code', dir: 'asc', page: 2, pageSize: 50,
+    });
+    const url = new URL(reservationsHref(state, { page: 2 }), 'http://x');
+    expect(parseReservationsState(Object.fromEntries(url.searchParams))).toEqual(state);
+  });
+});
+
+describe('sortHref / ariaSort', () => {
+  it('flips the direction of the active column', () => {
+    expect(sortHref(S({ sort: 'name', dir: 'asc' }), 'name')).toBe('/admin/reservations?sort=name&dir=desc');
+  });
+
+  it('uses the column default for a new column and goes back to page 1', () => {
+    expect(sortHref(S({ page: 5 }), 'total_usd')).toBe('/admin/reservations?sort=total_usd&dir=asc');
+    expect(sortHref(S({ sort: 'code', dir: 'asc' }), 'date')).toBe('/admin/reservations');
+  });
+
+  it('exposes aria-sort only on the active column', () => {
+    expect(ariaSort(DEFAULT_STATE, 'date')).toBe('descending');
+    expect(ariaSort(S({ sort: 'code', dir: 'asc' }), 'code')).toBe('ascending');
+    expect(ariaSort(DEFAULT_STATE, 'code')).toBe('none');
+  });
+});
+
+describe('lastPage', () => {
+  it('is at least 1', () => {
+    expect(lastPage(0, 10)).toBe(1);
+    expect(lastPage(10, 10)).toBe(1);
+    expect(lastPage(11, 10)).toBe(2);
+    expect(lastPage(142, 25)).toBe(6);
+  });
+});
 });
