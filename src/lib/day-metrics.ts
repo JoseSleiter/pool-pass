@@ -40,3 +40,29 @@ export function shiftIsoDate(date: string, days: number): string {
 export function parseDayParam(raw: unknown, today: string): string {
   return typeof raw === 'string' && isIsoDate(raw) ? raw : today;
 }
+
+/** People checked in during one Caracas hour (0–23). Same shape as DaySummary.checkinsByHour. */
+export interface HourBucket {
+  hour: number;
+  people: number;
+}
+
+/**
+ * Contiguous hours from the first to the last hour with check-ins, with empty
+ * hours as 0, ready for a bar sparkline. Empty input → empty output.
+ */
+export function hourlySeries(byHour: HourBucket[]): HourBucket[] {
+  if (byHour.length === 0) return [];
+  const people = new Map(byHour.map((b) => [b.hour, b.people]));
+  const hours = byHour.map((b) => b.hour);
+  const first = Math.min(...hours);
+  const last = Math.max(...hours);
+  const series: HourBucket[] = [];
+  for (let hour = first; hour <= last; hour++) series.push({ hour, people: people.get(hour) ?? 0 });
+  return series;
+}
+
+/** "09:00" — label for a Caracas hour bucket. */
+export function hourLabel(hour: number): string {
+  return `${String(hour).padStart(2, '0')}:00`;
+}

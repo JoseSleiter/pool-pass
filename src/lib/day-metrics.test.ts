@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  isIsoDate, occupancyLevel, occupancyPercent, parseDayParam, shiftIsoDate,
+  hourLabel, hourlySeries, isIsoDate, occupancyLevel, occupancyPercent, parseDayParam, shiftIsoDate,
 } from './day-metrics';
 
 describe('occupancyPercent', () => {
@@ -69,5 +69,39 @@ describe('parseDayParam', () => {
     expect(parseDayParam(undefined, '2030-06-01')).toBe('2030-06-01');
     expect(parseDayParam('2030-02-31', '2030-06-01')).toBe('2030-06-01');
     expect(parseDayParam(['2030-01-15', '2030-01-16'], '2030-06-01')).toBe('2030-06-01');
+  });
+});
+
+describe('hourlySeries', () => {
+  it('is empty when nobody checked in', () => {
+    expect(hourlySeries([])).toEqual([]);
+  });
+
+  it('spans first to last check-in hour, filling gaps with zero', () => {
+    expect(hourlySeries([
+      { hour: 9, people: 3 },
+      { hour: 12, people: 5 },
+    ])).toEqual([
+      { hour: 9, people: 3 },
+      { hour: 10, people: 0 },
+      { hour: 11, people: 0 },
+      { hour: 12, people: 5 },
+    ]);
+  });
+
+  it('keeps a single hour as a single bucket and does not depend on input order', () => {
+    expect(hourlySeries([{ hour: 14, people: 1 }])).toEqual([{ hour: 14, people: 1 }]);
+    expect(hourlySeries([{ hour: 11, people: 2 }, { hour: 10, people: 1 }])).toEqual([
+      { hour: 10, people: 1 },
+      { hour: 11, people: 2 },
+    ]);
+  });
+});
+
+describe('hourLabel', () => {
+  it('formats a Caracas hour as HH:00 (24h)', () => {
+    expect(hourLabel(0)).toBe('00:00');
+    expect(hourLabel(9)).toBe('09:00');
+    expect(hourLabel(17)).toBe('17:00');
   });
 });
