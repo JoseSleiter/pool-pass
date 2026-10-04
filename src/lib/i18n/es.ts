@@ -43,7 +43,6 @@ export const es = {
       showers: 'Duchas y vestuarios',
     },
     // TODO: horario real — este es inventado y sale en el footer de cada página.
-    // TODO: horario real — inventado; sale en el footer de cada página (también en en.ts).
     hours: 'Mar–Dom · 9:00 am – 6:00 pm',
   },
   hero: {
