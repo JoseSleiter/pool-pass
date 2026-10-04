@@ -122,6 +122,12 @@ export const es = {
     totalUpdates: 'El total se actualiza automáticamente',
     decrease: 'Disminuir {label}',
     increase: 'Aumentar {label}',
+    breakdownTitle: 'Resumen de tu compra',
+    lineItem: '{label} × {count} · {price} c/u',
+    totalUsd: 'Total en dólares',
+    bcvRate: 'Tasa BCV del día',
+    totalVes: 'Total a pagar en bolívares',
+    rateAtPayment: 'El monto en bolívares se calcula con la tasa BCV del día.',
   },
   pay: {
     title: 'Datos para confirmar tu reserva',
@@ -140,6 +146,10 @@ export const es = {
     otpHint: 'Genera la clave C2P desde la app de tu banco antes de pagar.',
     submit: 'Confirmar y pagar',
     submitting: 'Procesando…',
+    phoneHint: 'Operadoras: {prefixes}',
+    // Must NOT contain "clave de pago": tests and e2e find the key input with
+    // getByLabel(/clave de pago/i) and would also match this button.
+    showKey: 'Mostrar clave',
   },
   pending: {
     title: 'Pago en verificación',
@@ -159,6 +169,14 @@ export const es = {
     attendees: 'Asistentes:',
     paid: 'Pagado:',
     whatsapp: '¿Dudas? Escríbenos por WhatsApp',
+    howToEnter: 'Cómo entrar',
+    step1: 'Llega el {date} con tu documento de identidad.',
+    step2: 'En la entrada, muestra este código QR desde tu teléfono o impreso.',
+    step3: 'El personal lo escanea, revisa tu documento y registra tu entrada.',
+    print: 'Descargar / Imprimir',
+    share: 'Compartir por WhatsApp',
+    // Only club, date and code: no name, ID, email or amounts (see voucher.tsx).
+    shareText: 'Mi pase para {club} el {date} · Código {code}',
   },
   errors: {
     noAttendees: 'Agrega al menos un asistente para continuar.',
@@ -198,5 +216,12 @@ export const es = {
     // Texts for the ids listed in landingContent.rules (src/lib/landing-content.ts).
     // Empty on purpose: only the owner can provide the real rules.
     rules: {},
+  },
+  // Both badges are literal facts (roadmap §2): Mercantil is the C2P processor
+  // and the C2P fields are AES-256 encrypted (src/lib/mercantil/encrypt.ts).
+  trust: {
+    title: 'Seguridad del pago',
+    c2pMercantil: 'Pago Móvil C2P · Banco Mercantil',
+    encrypted: 'Datos de pago cifrados (AES-256)',
   },
 };

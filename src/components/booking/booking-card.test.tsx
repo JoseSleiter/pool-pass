@@ -11,10 +11,21 @@ vi.mock('@/app/actions/booking', () => ({
   getCurrentRate: vi.fn(async () => 36.5),
 }));
 
-import { submitBookingAndPay } from '@/app/actions/booking';
+import { submitBookingAndPay, getCurrentRate } from '@/app/actions/booking';
 
 const prices = { adult: 15, child: 5 };
 const user = userEvent.setup();
+
+const confirmed = {
+  ok: true as const,
+  reservation: {
+    id: '6f9619ff-8b86-d011-b42d-00c04fc964ff',
+    code: 'PP-ABC12',
+    totalUsd: 35,
+    totalVes: 1277.5,
+    bcvRate: 36.5,
+  },
+};
 
 function renderCard() {
   return renderWithI18n(<BookingCard prices={prices} initialAvailability={{}} remaining={40} />);
@@ -38,6 +49,7 @@ async function fillPaymentAndConfirm() {
 describe('BookingCard', () => {
   beforeEach(() => {
     vi.mocked(submitBookingAndPay).mockReset();
+    vi.mocked(getCurrentRate).mockClear();
   });
 
   it('shows the default party total in the summary (2 adultos · 1 niño = $35)', () => {
@@ -51,6 +63,14 @@ describe('BookingCard', () => {
     await user.click(screen.getByRole('button', { name: /aumentar adultos/i })); // 3 adultos · 1 niño
     await user.click(screen.getByRole('button', { name: /listo/i }));
     expect(screen.getByTestId('total-usd')).toHaveTextContent('$50 USD'); // 3*15 + 5
+  });
+
+  it('shows the price breakdown with the BCV rate and the VES total on the summary', async () => {
+    renderCard();
+    expect(await screen.findByTestId('breakdown-total-ves')).toHaveTextContent('Bs. 1277.50');
+    expect(screen.getByTestId('breakdown-rate')).toHaveTextContent('Bs. 36.50 / $');
+    expect(screen.getByTestId('breakdown-total-usd')).toHaveTextContent('$35.00 USD');
+    expect(getCurrentRate).toHaveBeenCalledTimes(1);
   });
 
   it('shows the estimated VES total on the payment step (rate fetched on transition)', async () => {
@@ -76,6 +96,27 @@ describe('BookingCard', () => {
     expect(await screen.findByText(/teléfono venezolano inválido/i)).toBeInTheDocument();
   });
 
+  it('submits the phone as digits only (schema shape) plus the empty honeypot', async () => {
+    vi.mocked(submitBookingAndPay).mockResolvedValue(confirmed);
+    renderCard();
+    await goToPay();
+    await fillPaymentAndConfirm();
+    await screen.findByTestId('reservation-code');
+    expect(submitBookingAndPay).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: '04141234567', bankCode: '0102', otp: '123456', website: '' })
+    );
+  });
+
+  it('payment_declined: shows the bank reason and clears only the C2P key', async () => {
+    vi.mocked(submitBookingAndPay).mockResolvedValue({ ok: false, error: 'payment_declined', message: 'Clave vencida' });
+    renderCard();
+    await goToPay();
+    await fillPaymentAndConfirm();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Pago rechazado: Clave vencida');
+    expect(screen.getByLabelText(/clave de pago/i)).toHaveValue('');
+    expect(screen.getByLabelText(/teléfono/i)).toHaveValue('0414-123-4567');
+  });
+
   it('locks the form on payment_pending: verification screen, no pay button', async () => {
     vi.mocked(submitBookingAndPay).mockResolvedValue({
       ok: false,
@@ -90,23 +131,21 @@ describe('BookingCard', () => {
     expect(screen.queryByRole('button', { name: /confirmar y pagar/i })).not.toBeInTheDocument();
   });
 
-  it('shows the ticket-style confirmation with pass code, QR and WhatsApp link after payment', async () => {
-    vi.mocked(submitBookingAndPay).mockResolvedValue({
-      ok: true,
-      reservation: {
-        id: '6f9619ff-8b86-d011-b42d-00c04fc964ff',
-        code: 'PP-ABC12',
-        totalUsd: 35,
-        totalVes: 1277.5,
-        bcvRate: 36.5,
-      },
-    });
+  it('shows the ticket-style confirmation with pass code, QR and WhatsApp links after payment', async () => {
+    vi.mocked(submitBookingAndPay).mockResolvedValue(confirmed);
     renderCard();
     await goToPay();
     await fillPaymentAndConfirm();
     expect(await screen.findByTestId('reservation-code')).toHaveTextContent('PP-ABC12');
     expect(screen.getByAltText(/código qr/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /whatsapp/i })).toBeInTheDocument();
+    // Two WhatsApp links since PR 06 (share the pass + ask the club), so each is
+    // queried by its own name instead of the old /whatsapp/i.
+    expect(screen.getByRole('link', { name: /compartir por whatsapp/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('PP-ABC12')
+    );
+    expect(screen.getByRole('link', { name: /escríbenos por whatsapp/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /descargar \/ imprimir/i })).toBeInTheDocument();
   });
 
   it('renders in English and shows English validation messages', async () => {
