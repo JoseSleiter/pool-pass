@@ -205,3 +205,47 @@ describe('adminGetDaySummary aggregates (authorized user)', () => {
     });
   });
 });
+
+describe('owner-only actions reject an operator', () => {
+  const ID = '6f9619ff-8b86-d011-b42d-00c04fc964ff';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = { id: 'ops-1', email: OPS_EMAIL };
+    vi.mocked(getAdminRole).mockResolvedValue('operator');
+  });
+
+  it('adminGetSettings rejects with Forbidden and never reads', async () => {
+    await expect(adminGetSettings()).rejects.toThrow('Forbidden');
+    expect(getSettings).not.toHaveBeenCalled();
+    expect(listOverrides).not.toHaveBeenCalled();
+  });
+
+  it('adminUpdateSettings rejects with Forbidden and never writes', async () => {
+    await expect(
+      adminUpdateSettings({ daily_capacity: 100, adult_price_usd: 10, child_price_usd: 5 })
+    ).rejects.toThrow('Forbidden');
+    expect(updateSettings).not.toHaveBeenCalled();
+  });
+
+  it('adminUpsertOverride rejects with Forbidden and never writes', async () => {
+    await expect(adminUpsertOverride('2030-01-15', 5)).rejects.toThrow('Forbidden');
+    expect(upsertOverride).not.toHaveBeenCalled();
+  });
+
+  it('adminDeleteOverride rejects with Forbidden and never writes', async () => {
+    await expect(adminDeleteOverride('2030-01-15')).rejects.toThrow('Forbidden');
+    expect(deleteOverride).not.toHaveBeenCalled();
+  });
+
+  it('an operator can still check guests in', async () => {
+    vi.mocked(checkInReservation).mockResolvedValue(undefined);
+    await expect(adminCheckIn(ID)).resolves.toEqual({ ok: true });
+    expect(checkInReservation).toHaveBeenCalledWith(ID);
+  });
+
+  it('an operator can still read the day list', async () => {
+    vi.mocked(listReservationsByDate).mockResolvedValue([]);
+    await expect(adminListReservations('2030-01-15')).resolves.toEqual([]);
+  });
+});

@@ -84,13 +84,13 @@ const settingsSchema = z.object({
 });
 
 export async function adminGetSettings() {
-  await requireAdmin();
+  await requireAdmin({ role: 'owner' });
   const [settings, overrides] = await Promise.all([getSettings(), listOverrides()]);
   return { settings, overrides };
 }
 
 export async function adminUpdateSettings(raw: unknown): Promise<{ ok: boolean; message?: string }> {
-  await requireAdmin();
+  await requireAdmin({ role: 'owner' });
   const parsed = settingsSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, message: 'Valores inválidos.' };
   try {
@@ -107,7 +107,7 @@ export async function adminUpsertOverride(
   capacity: number,
   reason?: string | null,
 ): Promise<{ ok: boolean; message?: string }> {
-  await requireAdmin();
+  await requireAdmin({ role: 'owner' });
   const cleanReason = typeof reason === 'string' ? reason.trim().slice(0, 200) : null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(capacity) || capacity < 0 || capacity > 10000) {
     return { ok: false, message: 'Valores inválidos.' };
@@ -122,7 +122,7 @@ export async function adminUpsertOverride(
 }
 
 export async function adminDeleteOverride(date: string): Promise<{ ok: boolean; message?: string }> {
-  await requireAdmin();
+  await requireAdmin({ role: 'owner' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, message: 'Fecha inválida.' };
   try {
     await deleteOverride(date);
