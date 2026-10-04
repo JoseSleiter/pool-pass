@@ -18,6 +18,26 @@ describe('landing content', () => {
       expect(en.content.amenities[a.id]).toBeTruthy();
     }
   });
+  it('amenity photos, when set, live in public/amenities and are named after the amenity', () => {
+    for (const a of landingContent.amenities) {
+      if (a.image !== undefined) expect(a.image).toBe(`/amenities/${a.id}.webp`);
+    }
+  });
+  it('every pool rule id has text in both dictionaries', () => {
+    // `amenities.rules` is `{}` until the owner adds rules; widen it to index by id.
+    const esRules = es.amenities.rules as Record<string, string>;
+    const enRules = en.amenities.rules as Record<string, string>;
+    for (const id of landingContent.rules) {
+      expect(esRules[id], id).toBeTruthy();
+      expect(enRules[id], id).toBeTruthy();
+    }
+  });
+  it('has the amenities section copy in both languages', () => {
+    for (const key of ['heading', 'body', 'scheduleHeading', 'rulesHeading'] as const) {
+      expect(es.amenities[key], key).toBeTruthy();
+      expect(en.amenities[key], key).toBeTruthy();
+    }
+  });
   it('builds the club wa.me link', () => {
     expect(whatsappUrl()).toBe('https://wa.me/584249196984');
   });
