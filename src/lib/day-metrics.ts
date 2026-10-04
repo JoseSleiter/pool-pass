@@ -1,3 +1,7 @@
+import { bucketCheckinsByHour } from '@/lib/day-stats';
+import { roundMoney } from '@/lib/money';
+import type { OverrideRow, ReservationRow } from '@/lib/db/reservations';
+
 /** Occupancy color bands (roadmap §2): 0–70 % normal, 71–90 % high, 91 %+ peak. */
 export type OccupancyLevel = 'normal' | 'high' | 'peak';
 
@@ -65,4 +69,57 @@ export function hourlySeries(byHour: HourBucket[]): HourBucket[] {
 /** "09:00" — label for a Caracas hour bucket. */
 export function hourLabel(hour: number): string {
   return `${String(hour).padStart(2, '0')}:00`;
+}
+
+/** Everything the admin "Hoy" view needs for its KPI cards. */
+export interface DayMetrics {
+  /** Effective capacity: the day's capacity_overrides row if any, else settings.daily_capacity. 0 = closed. */
+  capacity: number;
+  /** settings.daily_capacity, to explain a special day ("normal: 100"). */
+  defaultCapacity: number;
+  /** The day's override, or null when it uses the default capacity. */
+  override: { capacity: number; reason: string | null } | null;
+  /** Adults + children in confirmed + checked_in reservations. */
+  confirmedPeople: number;
+  checkedInPeople: number;
+  checkedInParties: number;
+  /** People checked in per Caracas hour (0–23), ascending; empty hours omitted. */
+  checkinsByHour: HourBucket[];
+  /** Paid (confirmed + checked_in). VES is what was charged at confirmation. */
+  collected: { usd: number; ves: number; count: number };
+  /** pending_payment (C2P awaiting verification). Their VES is only fixed when confirmed, so USD only. */
+  pending: { usd: number; count: number };
+}
+
+type MetricsRow = Pick<
+  ReservationRow,
+  'status' | 'adults' | 'children' | 'total_usd' | 'total_ves' | 'checked_in_at'
+>;
+
+const peopleIn = (rows: MetricsRow[]) => rows.reduce((s, r) => s + r.adults + r.children, 0);
+const usdIn = (rows: MetricsRow[]) => roundMoney(rows.reduce((s, r) => s + Number(r.total_usd), 0));
+const vesIn = (rows: MetricsRow[]) => roundMoney(rows.reduce((s, r) => s + Number(r.total_ves ?? 0), 0));
+
+/** Day KPIs from that day's reservations, the default capacity and the overrides list. */
+export function computeDayMetrics(input: {
+  date: string;
+  rows: MetricsRow[];
+  dailyCapacity: number;
+  overrides: Pick<OverrideRow, 'date' | 'capacity' | 'reason'>[];
+}): DayMetrics {
+  const o = input.overrides.find((x) => x.date === input.date) ?? null;
+  const paid = input.rows.filter((r) => r.status === 'confirmed' || r.status === 'checked_in');
+  const checkedIn = input.rows.filter((r) => r.status === 'checked_in');
+  const pending = input.rows.filter((r) => r.status === 'pending_payment');
+  return {
+    capacity: o ? o.capacity : input.dailyCapacity,
+    defaultCapacity: input.dailyCapacity,
+    override: o ? { capacity: o.capacity, reason: o.reason } : null,
+    confirmedPeople: peopleIn(paid),
+    checkedInPeople: peopleIn(checkedIn),
+    checkedInParties: checkedIn.length,
+    checkinsByHour: bucketCheckinsByHour(input.rows),
+    collected: { usd: usdIn(paid), ves: vesIn(paid), count: paid.length },
+    pending: { usd: usdIn(pending), count: pending.length },
+  };
 }
