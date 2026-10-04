@@ -17,6 +17,7 @@ export const AUDIT_ACTION_LABELS = {
   'override.upsert': 'Excepción de capacidad guardada',
   'override.delete': 'Excepción de capacidad eliminada',
   'role.upsert': 'Rol de acceso asignado',
+  'bcv.refresh': 'Tasa BCV actualizada manualmente',
 } as const satisfies Record<AuditAction, string>;
 
 export const AUDIT_ACTIONS = Object.keys(AUDIT_ACTION_LABELS) as AuditAction[];

@@ -107,11 +107,21 @@ describe('reservations data layer', () => {
   });
 
   it('rate cache round-trips through settings', async () => {
-    await writeRateCache(36.77, Date.parse('2030-02-10T12:00:00Z'));
-    const cached = await readRateCache();
-    expect(cached).toEqual({ rate: 36.77, fetchedAt: Date.parse('2030-02-10T12:00:00Z') });
-    const settings = await getSettings();
-    expect(settings.daily_capacity).toBeGreaterThan(0);
+    // The cache lives in the shared settings row: restore it afterwards, or a
+    // far-future stamp would keep the local app from ever refetching the rate.
+    const before = await getSettings();
+    try {
+      await writeRateCache(36.77, Date.parse('2030-02-10T12:00:00Z'));
+      const cached = await readRateCache();
+      expect(cached).toEqual({ rate: 36.77, fetchedAt: Date.parse('2030-02-10T12:00:00Z') });
+      const settings = await getSettings();
+      expect(settings.daily_capacity).toBeGreaterThan(0);
+    } finally {
+      await supabase
+        .from('settings')
+        .update({ last_bcv_rate: before.last_bcv_rate, last_bcv_rate_at: before.last_bcv_rate_at })
+        .eq('id', 1);
+    }
   });
 });
 

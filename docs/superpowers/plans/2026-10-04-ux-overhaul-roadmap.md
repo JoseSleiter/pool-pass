@@ -50,7 +50,7 @@
 export type AuditAction =
   | 'reservation.check_in' | 'reservation.resend_voucher'
   | 'settings.update' | 'override.upsert' | 'override.delete'
-  | 'role.upsert';
+  | 'role.upsert' | 'bcv.refresh';
 export async function logAudit(e: { actor: string; action: AuditAction; target?: string; details?: Record<string, unknown> }): Promise<void>; // nunca lanza error: si falla, console.error
 export async function listAudit(p: { page: number; pageSize: number }): Promise<{ rows: AuditRow[]; total: number }>;
 
