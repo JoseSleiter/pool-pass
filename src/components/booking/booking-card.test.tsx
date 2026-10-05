@@ -180,14 +180,11 @@ describe('BookingCard', () => {
     await fillPaymentAndConfirm();
     expect(await screen.findByTestId('reservation-code')).toHaveTextContent('PP-ABC12');
     expect(screen.getByAltText(/código qr/i)).toBeInTheDocument();
-    // Two WhatsApp links since PR 06 (share the pass + ask the club), so each is
-    // queried by its own name instead of the old /whatsapp/i.
-    expect(screen.getByRole('link', { name: /compartir por whatsapp/i })).toHaveAttribute(
-      'href',
-      expect.stringContaining('PP-ABC12')
-    );
+    // Share the pass (button) and ask the club (link) both mention WhatsApp, so
+    // each is queried by its own name.
+    expect(screen.getByRole('button', { name: /compartir por whatsapp/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /escríbenos por whatsapp/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /descargar \/ imprimir/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /descargar qr/i })).toHaveAttribute('download', 'PP-ABC12-qr.png');
   });
 
   it('renders in English and shows English validation messages', async () => {
