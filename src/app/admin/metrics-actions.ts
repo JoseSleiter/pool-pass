@@ -8,9 +8,9 @@ import { computeDayMetrics, isIsoDate, type DayMetrics } from '@/lib/day-metrics
 const dateSchema = z.string().refine(isIsoDate);
 
 /**
- * KPIs for the admin "Hoy" view. Read-only (no audit entry). Unlike
- * adminGetDaySummary, capacity is the day's effective capacity
- * (capacity_overrides first), so closed and special days are right.
+ * KPIs for the admin "Hoy" view. Read-only (no audit entry). Capacity is the
+ * day's effective capacity (capacity_overrides first), so closed and special
+ * days are right.
  */
 export async function adminGetDayMetrics(date: string): Promise<DayMetrics> {
   await requireAdmin();

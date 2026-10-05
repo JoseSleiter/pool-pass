@@ -45,7 +45,7 @@ export function parseDayParam(raw: unknown, today: string): string {
   return typeof raw === 'string' && isIsoDate(raw) ? raw : today;
 }
 
-/** People checked in during one Caracas hour (0–23). Same shape as DaySummary.checkinsByHour. */
+/** People checked in during one Caracas hour (0–23), as returned by bucketCheckinsByHour. */
 export interface HourBucket {
   hour: number;
   people: number;
