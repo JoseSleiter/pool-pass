@@ -24,7 +24,7 @@ export default async function CheckinPage({
   params: Promise<{ id: string }>;
 }) {
   // Defense in depth: this page reads customer PII via the service role, so it
-  // re-verifies the admin token here instead of trusting middleware alone.
+  // re-verifies the admin token here instead of trusting the proxy alone.
   await requireAdmin();
   const { id } = await params;
   const reservation = UUID_RE.test(id) ? await getReservation(id).catch(() => null) : null;
