@@ -176,10 +176,9 @@ export const es = {
     step1: 'Llega el {date} con tu documento de identidad.',
     step2: 'En la entrada, muestra este código QR desde tu teléfono o impreso.',
     step3: 'El personal lo escanea, revisa tu documento y registra tu entrada.',
-    print: 'Descargar / Imprimir',
+    code: 'Código:',
+    downloadQr: 'Descargar QR',
     share: 'Compartir por WhatsApp',
-    // Only club, date and code: no name, ID, email or amounts (see voucher.tsx).
-    shareText: 'Mi pase para {club} el {date} · Código {code}',
   },
   errors: {
     noAttendees: 'Agrega al menos un asistente para continuar.',

@@ -1,14 +1,14 @@
 'use client';
 
-import { useId } from 'react';
+import { useEffect, useId, useState } from 'react';
 import Image from 'next/image';
-import { Printer, Share2 } from 'lucide-react';
+import { Download, Share2 } from 'lucide-react';
 import { Logo } from '@/components/brand/logo';
 import { useLocale, useT } from '@/lib/i18n/provider';
 import { formatParty, interpolate } from '@/lib/i18n/format';
 import { shortDateLabel } from '@/lib/dates';
 import { landingContent, whatsappUrl } from '@/lib/landing-content';
-import { whatsappShareUrl } from '@/lib/booking/share';
+import { voucherShareText, whatsappShareUrl } from '@/lib/booking/share';
 import type { BookingResult } from '@/lib/booking/process';
 
 export type ConfirmedReservation = Extract<BookingResult, { ok: true }>['reservation'];
@@ -45,7 +45,34 @@ const PRINT_CSS = `
 }
 `;
 
-/** State 4 of the checkout: the confirmed pass, printable and shareable. */
+/**
+ * The QR as a File, fetched once when the voucher mounts so the share click can
+ * call navigator.share synchronously (browsers drop the user gesture across an
+ * await). null until ready, or when this browser can't share files — then the
+ * share button falls back to a wa.me text link.
+ */
+function useShareableQr(id: string, code: string): File | null {
+  const [file, setFile] = useState<File | null>(null);
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || typeof navigator.canShare !== 'function') return;
+    let cancelled = false;
+    fetch(`/api/qr/${id}`)
+      .then((res) => (res.ok ? res.blob() : Promise.reject(new Error(`QR ${res.status}`))))
+      .then((blob) => {
+        const qr = new File([blob], `${code}-qr.png`, { type: 'image/png' });
+        if (!cancelled && navigator.canShare({ files: [qr] })) setFile(qr);
+      })
+      .catch(() => {
+        // Text fallback stays in place.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, code]);
+  return file;
+}
+
+/** State 4 of the checkout: the confirmed pass, downloadable and shareable. */
 export function Voucher(props: {
   reservation: ConfirmedReservation;
   email: string;
@@ -60,12 +87,33 @@ export function Voucher(props: {
   const stepsTitleId = useId();
   const { reservation } = props;
   const dateLabel = shortDateLabel(props.date, locale);
-  // Club, date and code only: no name, ID, email, amounts or the QR's UUID.
-  // The guest picks the recipient, and the code alone does not get anyone in
-  // (the gate scans the QR and checks the holder's ID).
-  const shareHref = whatsappShareUrl(
-    interpolate(t.done.shareText, { club: landingContent.clubName, date: dateLabel, code: reservation.code })
-  );
+  const shareText = voucherShareText(t.done, {
+    club: landingContent.clubName,
+    code: reservation.code,
+    date: dateLabel,
+    name: `${props.firstName} ${props.lastName}`,
+    idLabel: props.idLabel,
+    party: formatParty(t.party, props.party.adults, props.party.children),
+    totalUsd: reservation.totalUsd,
+    totalVes: reservation.totalVes,
+  });
+  const qrFile = useShareableQr(reservation.id, reservation.code);
+
+  function openWhatsappText() {
+    window.open(whatsappShareUrl(shareText), '_blank', 'noopener,noreferrer');
+  }
+
+  async function share() {
+    // wa.me links carry text only; images need the system share sheet (mobile).
+    if (!qrFile) return openWhatsappText();
+    try {
+      await navigator.share({ files: [qrFile], text: shareText });
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return; // guest closed the sheet
+      openWhatsappText();
+    }
+  }
+
   const steps = [interpolate(t.done.step1, { date: dateLabel }), t.done.step2, t.done.step3];
 
   return (
@@ -134,23 +182,23 @@ export function Voucher(props: {
       </article>
 
       <div className="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
+        <a
+          href={`/api/qr/${reservation.id}`}
+          download={`${reservation.code}-qr.png`}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-navy px-6 text-sm font-semibold text-white"
+        >
+          <Download className="h-4 w-4" aria-hidden="true" />
+          {t.done.downloadQr}
+        </a>
         <button
           type="button"
-          onClick={() => window.print()}
-          className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full bg-navy px-6 text-sm font-semibold text-white"
-        >
-          <Printer className="h-4 w-4" aria-hidden="true" />
-          {t.done.print}
-        </button>
-        <a
-          href={shareHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-teal px-6 text-sm font-semibold text-navy"
+          onClick={share}
+          data-share-mode={qrFile ? 'file' : 'text'}
+          className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full bg-teal px-6 text-sm font-semibold text-navy"
         >
           <Share2 className="h-4 w-4" aria-hidden="true" />
           {t.done.share}
-        </a>
+        </button>
       </div>
 
       <a

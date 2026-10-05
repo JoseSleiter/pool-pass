@@ -167,9 +167,9 @@ export const en: Dictionary = {
     step1: 'Arrive on {date} with your ID.',
     step2: 'At the entrance, show this QR code on your phone or printed.',
     step3: 'Staff scan it, check your ID and register your entry.',
-    print: 'Download / Print',
+    code: 'Code:',
+    downloadQr: 'Download QR',
     share: 'Share on WhatsApp',
-    shareText: 'My pass for {club} on {date} · Code {code}',
   },
   errors: {
     noAttendees: 'Add at least one guest to continue.',
