@@ -73,7 +73,7 @@ export async function searchReservations(q: ReservationQuery): Promise<{ rows: R
 
 // src/app/admin/actions.ts (PR 02)
 export async function adminSearchReservations(raw: unknown): Promise<{ rows: ReservationRow[]; total: number }>;
-// DaySummary gana: checkinsByHour: { hour: number; people: number }[]  (hora Caracas, 0–23)
+// checkinsByHour: { hour: number; people: number }[] (hora Caracas, 0–23) — vive en DayMetrics (adminGetDayMetrics, PR 09); DaySummary/adminGetDaySummary se eliminaron
 
 // src/app/actions/booking.ts (PR 02)
 export async function getWeekendBookedPeople(): Promise<number | null>; // null si < 10
