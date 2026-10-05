@@ -45,7 +45,7 @@ function siteUrl(): URL {
 // Resolved once at module load so a bad env value warns once, not per request.
 const metadataBase = siteUrl();
 
-/** pp_lang locale, except on /admin/* (marked by the middleware), which is Spanish-only. */
+/** pp_lang locale, except on /admin/* (marked by the proxy), which is Spanish-only. */
 async function requestLocale() {
   const [locale, requestHeaders] = await Promise.all([getLocale(), headers()]);
   return documentLocale(locale, requestHeaders.get(ADMIN_SCOPE_HEADER));

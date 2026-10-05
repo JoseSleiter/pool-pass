@@ -2,7 +2,7 @@
 import type { Locale } from '@/lib/i18n/types';
 
 /**
- * Request header the middleware sets on every /admin/* request so the root
+ * Request header the proxy (src/proxy.ts) sets on every /admin/* request so the root
  * layout (which cannot see the pathname) knows it is rendering the admin.
  */
 export const ADMIN_SCOPE_HEADER = 'x-pp-scope';

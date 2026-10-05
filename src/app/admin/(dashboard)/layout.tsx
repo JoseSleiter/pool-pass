@@ -9,7 +9,7 @@ function isAuthError(e: unknown): boolean {
 }
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
-  // Middleware already redirects non-allowlisted users; this is the server-side
+  // The proxy already redirects non-allowlisted users; this is the server-side
   // gate and the source of the role the shell shows. Other errors (e.g. the
   // role lookup failing) are rethrown: fail closed.
   const user = await requireAdmin().catch((e: unknown) => {

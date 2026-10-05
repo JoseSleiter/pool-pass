@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { isAdminEmail } from '@/lib/auth/admin';
 import { ADMIN_SCOPE, ADMIN_SCOPE_HEADER } from '@/lib/admin-scope';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Every matched request is /admin/*: tell the root layout so it renders
   // lang="es" regardless of pp_lang. Rebuilt after setAll so refreshed auth
   // cookies (written into request.headers) are forwarded too.
